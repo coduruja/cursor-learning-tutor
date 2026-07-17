@@ -1,0 +1,12 @@
+{
+  "name": "pedro-learning-marketplace",
+  "owner": "Pedro Magalhães",
+  "description": "Marketplace pessoal com o plugin Learning Tutor.",
+  "plugins": [
+    {
+      "name": "cursor-learning-tutor",
+      "source": ".",
+      "description": "Tutor de aprendizado que calibra explicações ao seu nível e mantém um perfil entre projetos."
+    }
+  ]
+}
