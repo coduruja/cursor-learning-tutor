@@ -1,57 +1,76 @@
 # Learning Tutor (Cursor Plugin)
 
-Empacota o sistema de tutoria de aprendizado num plugin único e instalável.
-Vantagem sobre o setup manual: a rule instala já ativa (`alwaysApply: true`) —
-você não cola nada em Settings.
+Tutor leve: calibra explicações ao seu nível, mantém um perfil global e só
+aprofunda pesquisa quando você pede.
 
-## O que vem dentro
+## Uso rápido
 
-| Componente | Caminho | Papel |
-|---|---|---|
-| Rule (sempre ativa) | `rules/tutor.mdc` | Calibra ao seu nível, sugere material, emite marcador de log |
-| Subagent | `agents/study-researcher.md` | Pesquisa trilha de estudo aprofundada em contexto isolado |
-| Command `/study-plan` | `commands/study-plan.md` | Raio-x rápido do que você já sabe |
-| Command `/study-deep` | `commands/study-deep.md` | Dispara a trilha aprofundada (delega ao subagent) |
-| Hooks | `hooks/hooks.json` + `.py` | Captura o marcador e injeta o perfil entre projetos |
+| Ação | Como |
+|---|---|
+| Chat normal | Explica no seu nível; se houver conceito novo, registra e confirma com `Salvei no perfil: …` |
+| Registrar na mão | `/study-log` |
+| Raio-x / onboarding | `/study-plan` |
+| Trilha curada | `/study-deep <tópico>` |
 
-**Dado pessoal fica de fora do plugin:** o `profile.md` mora em
-`~/.cursor/learning/profile.md` e é criado pelo hook na primeira gravação. O
-plugin carrega só o código; seu histórico de aprendizado é seu.
+Não precisa “ligar” o tutor: a rule vem com `alwaysApply: true`.
+
+## O que fica no seu home
+
+Tudo pessoal fica em `~/.cursor/learning/` (fora do plugin):
+
+| Arquivo | Papel |
+|---|---|
+| `profile.md` | Meta, **fila de estudo** e **coberto** |
+| `cli.py` + `lib_profile.py` | CLI estável (instalada no `sessionStart`) |
+
+```bash
+python3 ~/.cursor/learning/cli.py show
+python3 ~/.cursor/learning/cli.py covered --topic "Closures" --level intermediário
+python3 ~/.cursor/learning/cli.py want --topic "Docker" --note "pro deploy"
+```
+
+## O que vem no plugin
+
+| Componente | Papel |
+|---|---|
+| `rules/tutor.mdc` | Calibração + quando/como registrar + feedback |
+| `commands/study-log.md` | Registro explícito |
+| `commands/study-plan.md` | Raio-x ou onboarding se vazio |
+| `commands/study-deep.md` | Dispara trilha via subagent |
+| `agents/study-researcher.md` | Pesquisa curada em contexto isolado |
+| `hooks/*` | Injeta perfil, instala CLI, captura marcadores backup |
 
 ## Instalação
 
-### Opção A — via marketplace local (recomendado)
-1. Coloque a pasta `cursor-learning-tutor/` onde quiser guardar (ex: um repo
-   git pessoal, ou uma pasta local).
-2. No Cursor: `Settings > Plugins` (ou a aba **Plugins** do marketplace) >
-   adicionar marketplace/fonte apontando para essa pasta (ou para o repo git).
-3. Instale o plugin **cursor-learning-tutor** na seção User.
+### Marketplace / Plugins
+Instale **Learning Tutor** na seção User. Abra um **novo chat** depois — o
+`sessionStart` copia a CLI para `~/.cursor/learning/`.
 
-### Opção B — cópia direta para ~/.cursor (sem marketplace)
-Se preferir não usar o fluxo de marketplace, copie os componentes para os
-diretórios globais (é o mesmo efeito, sem o "pacote"):
+### Cópia direta (sem marketplace)
 ```bash
-mkdir -p ~/.cursor/rules ~/.cursor/agents ~/.cursor/commands ~/.cursor/hooks
+mkdir -p ~/.cursor/rules ~/.cursor/agents ~/.cursor/commands ~/.cursor/hooks ~/.cursor/learning
 cp rules/tutor.mdc            ~/.cursor/rules/
 cp agents/study-researcher.md ~/.cursor/agents/
-cp commands/*.md             ~/.cursor/commands/
-cp hooks/*.py                ~/.cursor/hooks/
-# nesse caso, use um hooks.json global apontando para ~/.cursor/hooks/*.py
+cp commands/*.md              ~/.cursor/commands/
+cp hooks/lib_profile.py hooks/learning_cli.py hooks/capture_learning.py hooks/inject_profile.py ~/.cursor/hooks/
+cp hooks/learning_cli.py ~/.cursor/learning/cli.py
+cp hooks/lib_profile.py ~/.cursor/learning/lib_profile.py
 ```
+Aponte um `hooks.json` global para os scripts em `~/.cursor/hooks/`.
 
 ### Requisitos
-- `python3` no PATH (Windows: troque `python3` por `python` no `hooks.json`).
+- `python3` no PATH (Windows: use `python` no `hooks.json` se preciso).
 
-## Caveats honestos
-- Os hooks do plugin chamam os scripts via `$CURSOR_PLUGIN_ROOT`. Se na sua
-  versão essa variável não resolver, use a **Opção B** (hooks globais em
-  `~/.cursor`) ou fixe o caminho absoluto da pasta instalada do plugin no
-  `hooks.json`.
-- `alwaysApply: true` teve bug de rebaixamento silencioso em alguma versão do
-  Cursor (3.0.16). Se notar que a rule não está ativa, confira em
-  `Settings > Rules` se ela aparece como sempre-ativa.
-- O hook `sessionStart` (injeção do perfil) teve bug reportado no início de
-  2026. Se o agente não calibrar, a captura ainda funciona; use `/study-plan`
-  ou cole o topo do `profile.md` ao começar algo novo.
-- Hooks executam scripts locais — os dois aqui são curtos de propósito, pra
-  você auditar antes de instalar.
+## Como o registro funciona
+
+1. **CLI** (preferida): o agente roda `python3 ~/.cursor/learning/cli.py …`
+2. **Marcadores** (backup): `<!-- LEARNING-LOG … -->` / `<!-- LEARNING-WANT … -->`
+   lidos pelo hook `afterAgentResponse`
+
+Só entra conceito relevante. Chat meta/operacional não grava.
+
+## Caveats
+- Se a CLI ainda não existir, abra um novo chat (para o `sessionStart` rodar)
+  ou use a cópia direta acima.
+- Se `$CURSOR_PLUGIN_ROOT` falhar na sua versão do Cursor, use a cópia direta.
+- Hooks são scripts locais curtos — audite antes se quiser.

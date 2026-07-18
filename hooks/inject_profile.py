@@ -1,43 +1,63 @@
 #!/usr/bin/env python3
 """
-Cursor global hook (sessionStart): injeta o perfil de aprendizado.
+sessionStart: injeta o perfil e instala a CLI em caminho estável.
 
-Lê ~/.cursor/learning/profile.md e devolve como additional_context, para o
-agente calibrar em qualquer projeto.
-
-Nota: o hook sessionStart teve bug reportado no começo de 2026. Se não estiver
-injetando na sua versão, veja o README (a captura continua funcionando e você
-pode rodar /study-plan ou colar o topo do profile.md quando começar algo novo).
+Copia learning_cli.py + lib_profile.py para ~/.cursor/learning/ para o agente
+poder gravar com:
+  python3 ~/.cursor/learning/cli.py ...
+mesmo sem saber o path do plugin.
 """
 
-import sys
-import os
-import json
+from __future__ import annotations
 
-PROFILE = os.path.expanduser("~/.cursor/learning/profile.md")
-MAX_CHARS = 6000  # não estourar contexto; mantém as entradas mais recentes
+import importlib.util
+import json
+import sys
+from pathlib import Path
+
+
+def _load_lib():
+    here = Path(__file__).resolve().parent
+    path = here / "lib_profile.py"
+    spec = importlib.util.spec_from_file_location("lib_profile", path)
+    mod = importlib.util.module_from_spec(spec)
+    assert spec.loader is not None
+    spec.loader.exec_module(mod)
+    return mod
 
 
 def main() -> None:
     try:
-        sys.stdin.buffer.read()  # drena o stdin
+        sys.stdin.buffer.read()
     except Exception:
         pass
 
-    if not os.path.exists(PROFILE):
-        print(json.dumps({"continue": True}))
+    lib = _load_lib()
+    lib.install_cli(Path(__file__).resolve().parent)
+
+    if not lib.PROFILE_PATH.exists():
+        context = (
+            "LEARNING-PROFILE: perfil ainda vazio. "
+            "No primeiro momento útil, faça onboarding curto (nível geral + foco) "
+            "com `python3 ~/.cursor/learning/cli.py init --level ... --focus ...` "
+            "ou peça ao usuário para rodar `/study-plan` / `/study-log`."
+        )
+        print(json.dumps({"continue": True, "additional_context": context}))
         return
 
-    with open(PROFILE, "r", encoding="utf-8") as f:
-        content = f.read()
-
-    if len(content) > MAX_CHARS:
-        content = content[:800] + "\n...\n" + content[-(MAX_CHARS - 800):]
-
+    content = lib.truncate_for_inject(lib.read_profile())
+    empty_hint = ""
+    if lib.profile_is_empty():
+        empty_hint = (
+            "\n\n(Perfil quase vazio: ofereça onboarding curto ou `/study-plan` "
+            "em vez de inventar histórico.)"
+        )
     context = (
         "LEARNING-PROFILE (perfil de aprendizado do usuário entre projetos; "
-        "use para calibrar a profundidade das explicações e evitar repetir "
-        "fundamentos já dominados):\n\n" + content
+        "use para calibrar a profundidade das explicações; "
+        "para gravar use `python3 ~/.cursor/learning/cli.py`):\n\n"
+        + content
+        + empty_hint
     )
     print(json.dumps({"continue": True, "additional_context": context}))
 

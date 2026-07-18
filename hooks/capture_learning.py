@@ -1,25 +1,36 @@
 #!/usr/bin/env python3
 """
-Cursor global hook (afterAgentResponse): captura entradas de aprendizado.
+afterAgentResponse: captura marcadores LEARNING-LOG / LEARNING-WANT.
 
-Lê o JSON do hook via stdin, procura o marcador <!-- LEARNING-LOG ... --> que a
-User Rule instrui o agente a emitir, e adiciona uma entrada ao perfil global.
-Roda como script na sua máquina (fora do sandbox do agente), então escreve num
-arquivo do seu home, valendo para todos os projetos.
+Lê o JSON do hook via stdin, procura os marcadores que a rule instrui o agente
+a emitir, e atualiza ~/.cursor/learning/profile.md.
 """
 
-import sys
-import os
-import re
+from __future__ import annotations
+
+import importlib.util
 import json
-from datetime import date
+import re
+import sys
+from pathlib import Path
 
-PROFILE = os.path.expanduser("~/.cursor/learning/profile.md")
-
-MARKER_RE = re.compile(
+LOG_RE = re.compile(
     r'LEARNING-LOG\s+topic="(?P<topic>[^"]*)"\s+level="(?P<level>[^"]*)"'
     r'(?:\s+note="(?P<note>[^"]*)")?'
 )
+WANT_RE = re.compile(
+    r'LEARNING-WANT\s+topic="(?P<topic>[^"]*)"(?:\s+note="(?P<note>[^"]*)")?'
+)
+
+
+def _load_lib():
+    here = Path(__file__).resolve().parent
+    path = here / "lib_profile.py"
+    spec = importlib.util.spec_from_file_location("lib_profile", path)
+    mod = importlib.util.module_from_spec(spec)
+    assert spec.loader is not None
+    spec.loader.exec_module(mod)
+    return mod
 
 
 def read_stdin_text() -> str:
@@ -29,40 +40,28 @@ def read_stdin_text() -> str:
     except Exception:
         return raw
     if isinstance(data, dict):
+        chunks = []
         for key in ("text", "response", "content", "message", "output"):
             val = data.get(key)
-            if isinstance(val, str) and "LEARNING-LOG" in val:
-                return val
+            if isinstance(val, str):
+                chunks.append(val)
+        if chunks:
+            return "\n".join(chunks)
     return raw
 
 
-def append_entry(topic: str, level: str, note: str) -> None:
-    os.makedirs(os.path.dirname(PROFILE), exist_ok=True)
-    header_needed = not os.path.exists(PROFILE)
-    with open(PROFILE, "a", encoding="utf-8") as f:
-        if header_needed:
-            f.write(
-                "# Perfil de Aprendizado (global)\n\n"
-                "> Mantido automaticamente pelo hook capture_learning.py.\n\n"
-                "## Log de Aprendizado\n\n"
-            )
-        line = f"### {date.today().isoformat()} — {topic}\n"
-        line += f"- Nível: {level}\n"
-        if note:
-            line += f"- Contexto: {note}\n"
-        line += "\n"
-        f.write(line)
-
-
 def main() -> None:
+    lib = _load_lib()
+    lib.install_cli(Path(__file__).resolve().parent)
     text = read_stdin_text()
-    m = MARKER_RE.search(text)
-    if m:
-        append_entry(
+    for m in LOG_RE.finditer(text):
+        lib.add_covered(
             m.group("topic").strip(),
             m.group("level").strip(),
             (m.group("note") or "").strip(),
         )
+    for m in WANT_RE.finditer(text):
+        lib.add_want(m.group("topic").strip(), (m.group("note") or "").strip())
     print(json.dumps({"continue": True}))
 
 
@@ -70,5 +69,4 @@ if __name__ == "__main__":
     try:
         main()
     except Exception:
-        # Um hook nunca deve travar o agente.
         print(json.dumps({"continue": True}))

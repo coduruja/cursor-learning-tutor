@@ -6,7 +6,7 @@
     {
       "name": "cursor-learning-tutor",
       "source": ".",
-      "description": "Tutor de aprendizado que calibra explicações ao seu nível e mantém um perfil entre projetos."
+      "description": "Tutor de aprendizado: calibra ao nível, fila + coberto, /study-log e /study-deep."
     }
   ]
 }
