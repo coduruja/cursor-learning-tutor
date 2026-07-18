@@ -7,6 +7,9 @@ Uso típico (caminho estável após o primeiro sessionStart):
   python3 ~/.cursor/learning/cli.py done --topic "Docker"
   python3 ~/.cursor/learning/cli.py init --level intermediário --focus "backend"
   python3 ~/.cursor/learning/cli.py show
+  python3 ~/.cursor/learning/cli.py project-show
+  python3 ~/.cursor/learning/cli.py project-sync --stack "Next.js;Prisma" --candidates "App Router;Prisma migrations"
+  python3 ~/.cursor/learning/cli.py project-drop --topic "App Router"
 """
 
 from __future__ import annotations
@@ -55,8 +58,24 @@ def main() -> None:
     p_done.add_argument("--topic", required=True)
 
     sub.add_parser("show", help="Mostra o perfil")
+    sub.add_parser("queue-next", help="Mostra o primeiro item aberto da fila")
+
+    p_ps = sub.add_parser("project-show", help="Mostra .cursor/learning-project.md")
+    p_ps.add_argument("--cwd", default="", help="Root do projeto (default: cwd)")
+
+    p_sync = sub.add_parser("project-sync", help="Atualiza stack/candidatos/sondagem do projeto")
+    p_sync.add_argument("--stack", default="", help="Itens separados por ; ou ,")
+    p_sync.add_argument("--candidates", default="", help="Candidatos separados por ;")
+    p_sync.add_argument("--probe-summary", default="", help="Resumo da última sondagem")
+    p_sync.add_argument("--cwd", default="", help="Root do projeto (default: cwd)")
+
+    p_drop = sub.add_parser("project-drop", help="Remove um candidato do projeto")
+    p_drop.add_argument("--topic", required=True)
+    p_drop.add_argument("--cwd", default="", help="Root do projeto (default: cwd)")
 
     args = parser.parse_args()
+    cwd = args.cwd if getattr(args, "cwd", "") else None
+
     if args.cmd == "init":
         print(lib.init_profile(args.level, args.focus))
     elif args.cmd == "covered":
@@ -68,6 +87,22 @@ def main() -> None:
     elif args.cmd == "show":
         lib.ensure_profile()
         print(lib.read_profile())
+    elif args.cmd == "queue-next":
+        topic = lib.first_open_queue_topic()
+        print(topic if topic else "(fila vazia)")
+    elif args.cmd == "project-show":
+        print(lib.project_show(cwd))
+    elif args.cmd == "project-sync":
+        print(
+            lib.project_sync(
+                stack=args.stack,
+                candidates=args.candidates,
+                probe_summary=args.probe_summary,
+                cwd=cwd,
+            )
+        )
+    elif args.cmd == "project-drop":
+        print(lib.project_drop_candidate(args.topic, cwd))
 
 
 if __name__ == "__main__":

@@ -1,44 +1,58 @@
 # Learning Tutor (Cursor Plugin)
 
-Tutor leve: calibra explicações ao seu nível, mantém um perfil global e só
-aprofunda pesquisa quando você pede.
+Tutor leve: calibra explicações ao seu nível, captura lacunas conceituais na
+fila, mantém stack/candidatos por projeto, e só aprofunda pesquisa quando você
+pede.
 
 ## Uso rápido
 
 | Ação | Como |
 |---|---|
-| Chat normal | Explica no seu nível; se houver conceito novo, registra e confirma com `Salvei no perfil: …` |
+| Chat normal | Classifica intent; “o que é X?” → explica + `want` automático |
 | Registrar na mão | `/study-log` |
 | Raio-x / onboarding | `/study-plan` |
-| Trilha curada | `/study-deep <tópico>` |
+| Sondagem (perguntas-teste) | `/study-probe` |
+| Trilha curada | `/study-deep <tópico>` (sem tópico → primeiro da fila) |
 
 Não precisa “ligar” o tutor: a rule vem com `alwaysApply: true`.
 
-## O que fica no seu home
+## O que fica onde
 
-Tudo pessoal fica em `~/.cursor/learning/` (fora do plugin):
+### Global (`~/.cursor/learning/`)
 
 | Arquivo | Papel |
 |---|---|
 | `profile.md` | Meta, **fila de estudo** e **coberto** |
 | `cli.py` + `lib_profile.py` | CLI estável (instalada no `sessionStart`) |
 
+### Por projeto (híbrido)
+
+| Arquivo | Papel |
+|---|---|
+| `.cursor/learning-project.md` | Stack detectada, **candidatos** locais, última sondagem |
+
+Candidatos do projeto só viram fila global via pergunta conceitual,
+`/study-probe`, ou pedido explícito.
+
 ```bash
 python3 ~/.cursor/learning/cli.py show
 python3 ~/.cursor/learning/cli.py covered --topic "Closures" --level intermediário
 python3 ~/.cursor/learning/cli.py want --topic "Docker" --note "pro deploy"
+python3 ~/.cursor/learning/cli.py project-show
+python3 ~/.cursor/learning/cli.py project-sync --stack "Next.js;Prisma" --candidates "App Router;Prisma migrations"
 ```
 
 ## O que vem no plugin
 
 | Componente | Papel |
 |---|---|
-| `rules/tutor.mdc` | Calibração + quando/como registrar + feedback |
+| `rules/tutor.mdc` | Intent (`concept_gap` / `repo_local` / `agent_task`) + auto-want + calibração |
 | `commands/study-log.md` | Registro explícito |
 | `commands/study-plan.md` | Raio-x ou onboarding se vazio |
+| `commands/study-probe.md` | Sondagem ativa → ajusta covered/want |
 | `commands/study-deep.md` | Dispara trilha via subagent |
 | `agents/study-researcher.md` | Pesquisa curada em contexto isolado |
-| `hooks/*` | Injeta perfil, instala CLI, captura marcadores backup |
+| `hooks/*` | Injeta perfil + projeto, instala CLI, captura marcadores backup |
 
 ## Instalação
 
@@ -67,7 +81,13 @@ Aponte um `hooks.json` global para os scripts em `~/.cursor/hooks/`.
 2. **Marcadores** (backup): `<!-- LEARNING-LOG … -->` / `<!-- LEARNING-WANT … -->`
    lidos pelo hook `afterAgentResponse`
 
-Só entra conceito relevante. Chat meta/operacional não grava.
+Intent rápido:
+- “o que é PR / HTTP / Docker?” → fila (`want`) + feedback
+- “o que faz o módulo X?” → só código, sem log
+- “implemente Y” → executa; log só se ensinou conceito novo
+
+A CLI normaliza aliases (ex.: `pull request` ↔ `PR`) e ignora tópicos genéricos
+ou linguagens base sozinhas.
 
 ## Caveats
 - Se a CLI ainda não existir, abra um novo chat (para o `sessionStart` rodar)

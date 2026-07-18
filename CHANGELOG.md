@@ -1,5 +1,17 @@
 # Changelog
 
+## 2.1.0
+- Classificação de intent na rule: `concept_gap` → auto-`want`; `repo_local` /
+  `agent_task` sem poluir a fila.
+- Modelo híbrido: `.cursor/learning-project.md` (stack + candidatos + sondagem)
+  + perfil global (fila/coberto).
+- CLI: `project-show`, `project-sync`, `project-drop`, `queue-next`;
+  normalização/dedupe de tópicos (aliases, anti-ruído).
+- `sessionStart` injeta `LEARNING-PROJECT` quando o arquivo existe.
+- Novo comando `/study-probe` (perguntas-teste → covered/want).
+- `/study-deep` sem tópico usa o primeiro item aberto da fila.
+- `/study-plan` inclui stack/candidatos do projeto.
+
 ## 2.0.0
 - Perfil com **Meta**, **Fila de estudo** e **Coberto**.
 - CLI estável em `~/.cursor/learning/cli.py` (instalada no `sessionStart`).

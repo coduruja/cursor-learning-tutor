@@ -18,7 +18,10 @@ Produza:
 - **Domino** — avançado / estáveis
 - **Em progresso** — intermediário, ou cobertos repetidos sem subir de nível
 - **Fila** — itens abertos em "Fila de estudo"
+- **Stack do projeto** — se existir `LEARNING-PROJECT` / `.cursor/learning-project.md`
+- **Candidatos** — tópicos do projeto ainda não promovidos à fila global
 - **Lacunas** — surgiram no contexto mas não estão na fila nem no coberto
 - **Próximos 3 passos** — priorizados; cada um com 1 recurso específico
 
-Lembre: trilha aprofundada = `/study-deep`. Registrar na mão = `/study-log`.
+Lembre: calibração ativa = `/study-probe`. Trilha aprofundada = `/study-deep`.
+Registrar na mão = `/study-log`.

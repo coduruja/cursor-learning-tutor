@@ -6,6 +6,11 @@ Registre algo no meu perfil de aprendizado (`~/.cursor/learning/profile.md`).
 - Se o perfil estiver vazio e eu só rodar o comando: faça onboarding em 2
   perguntas (nível geral + foco) e rode `init`, depois pergunte o primeiro tópico.
 
+## Nota sobre captura automática
+Perguntas `concept_gap` (“o que é X?”, “como funciona X?”) **já vão sozinhas
+para a fila** pela rule do tutor. Use `/study-log` para override manual,
+correções, ou quando a captura automática não rodou.
+
 ## Como gravar (obrigatório)
 Use a CLI estável (não edite o markdown na mão a menos que a CLI falte):
 

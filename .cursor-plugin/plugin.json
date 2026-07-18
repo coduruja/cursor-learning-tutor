@@ -1,8 +1,8 @@
 {
   "name": "cursor-learning-tutor",
   "displayName": "Learning Tutor",
-  "version": "2.0.0",
-  "description": "Tutor de aprendizado: calibra ao seu nível, fila + coberto no perfil, /study-log e trilha com /study-deep.",
+  "version": "2.1.0",
+  "description": "Tutor de aprendizado: calibra ao nível, captura ‘o que é X?’ na fila, stack por projeto, /study-probe e /study-deep.",
   "author": { "name": "Pedro Magalhães" },
   "keywords": ["learning", "tutor", "study", "education"],
   "license": "MIT",

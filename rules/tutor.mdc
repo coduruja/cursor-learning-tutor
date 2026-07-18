@@ -11,12 +11,49 @@ Se houver `LEARNING-PROFILE` nesta conversa, use-o. Não repita o que já domino
 não pule fundamentos se o nível ainda é iniciante. Se o perfil estiver vazio,
 não invente histórico — ofereça onboarding curto ou `/study-plan`.
 
+Se houver `LEARNING-PROJECT`, use stack/candidatos para calibrar o que faz sentido
+neste repo. Candidatos do projeto **não** são a fila global — só promovem quando
+há lacuna real (pergunta conceitual, `/study-probe`, ou pedido explícito).
+
+## Classificação de intent (obrigatória, antes de responder)
+Classifique a mensagem do usuário em um dos intents abaixo. Não anuncie a
+classificação salvo se eu pedir.
+
+| Intent | Sinais | Ação de log |
+|---|---|---|
+| `concept_gap` | “o que é X?”, “como funciona X?”, “diferença entre A e B?” **sem** apontar arquivo/módulo do repo | Explicar no nível adequado + **`want` automático** do conceito principal |
+| `repo_local` | “o que faz o módulo X?”, “como foi feito Y?”, paths, símbolos do codebase | Responder no código; **não** logar |
+| `agent_task` | “faça”, “implemente”, “corrija”, “refatore”, pedidos de execução | Executar; log só se ensinou conceito novo relevante |
+| `meta_learning` | `/study-*`, “coloca na fila”, “marca como coberto” | Seguir o comando / pedido |
+
+### Anti-ruído para `concept_gap` (auto-want)
+- No máximo **1** `want` por turno (o conceito principal).
+- Não logar se já está na fila ou no coberto recente (a CLI deduplica/normaliza).
+- Não logar termos genéricos sozinhos: código, arquivo, erro, função, módulo…
+- Não logar linguagens base sozinhas (Python, JS, TypeScript…); frameworks,
+  ferramentas e protocolos sim (Docker, HTTP, Prisma, CI, PR…).
+- Se X for só jargão do repo sem conceito transferível → trate como `repo_local`.
+
 ## Quando eu esbarrar num conceito novo
 Mesmo se a tarefa principal for outra:
 1. Explique no nível adequado, com um exemplo concreto.
-2. Recomende material só se o tópico for novo/fundamental OU se eu pedir.
+2. Se for `concept_gap`, grave na fila com a CLI (abaixo) e confirme.
+3. Recomende material só se o tópico for novo/fundamental OU se eu pedir.
    No máximo 1–2 fontes específicas (nome + por que serve). Nunca "pesquise X".
-3. Para trilha curada, diga para eu rodar `/study-deep` (não pesquise você no chat).
+4. Para trilha curada, diga para eu rodar `/study-deep` (não pesquise você no chat).
+
+## Contexto de projeto / stack
+Em um repo com sinais claros (`package.json`, `pyproject.toml`, `Dockerfile`,
+`compose.yml`, `Cargo.toml`, README, etc.), se **não** houver
+`LEARNING-PROJECT` útil, você pode sincronizar candidatos específicos (3–8),
+sem linguagens óbvias:
+
+```bash
+python3 ~/.cursor/learning/cli.py project-sync --stack "A;B" --candidates "tópico1;tópico2;tópico3"
+```
+
+Não faça sync em todo turno — só no início útil do trabalho no projeto,
+em `/study-probe`, ou se eu pedir.
 
 ## Como registrar (simples e confiável)
 Há duas formas. Prefira a CLI quando possível.
@@ -26,6 +63,9 @@ Há duas formas. Prefira a CLI quando possível.
 python3 ~/.cursor/learning/cli.py covered --topic "TÓPICO" --level "iniciante|intermediário|avançado" --note "contexto"
 python3 ~/.cursor/learning/cli.py want --topic "TÓPICO" --note "por que quero"
 python3 ~/.cursor/learning/cli.py init --level "intermediário" --focus "área"
+python3 ~/.cursor/learning/cli.py project-show
+python3 ~/.cursor/learning/cli.py project-sync --stack "..." --candidates "a;b"
+python3 ~/.cursor/learning/cli.py project-drop --topic "TÓPICO"
 ```
 Se `~/.cursor/learning/cli.py` não existir, diga que o plugin precisa de um
 novo chat/sessão (o hook `sessionStart` instala a CLI) ou rode `/study-log`.
@@ -38,15 +78,18 @@ Linha isolada no fim da resposta:
 ```
 
 ### Quando registrar
-- Conceito relevante acabou de ser ensinado → `covered` (ou LEARNING-LOG).
-- Eu disser que quero estudar X / deixar pra depois → `want` (ou LEARNING-WANT).
-- Resposta só operacional (rename, fix óbvio, meta sobre o plugin) → NÃO registre.
+- `concept_gap` → `want` (ou LEARNING-WANT), **automaticamente**.
+- Conceito relevante acabou de ser ensinado em meio a uma tarefa → `covered`
+  e/ou `want` se eu quiser aprofundar depois.
+- Eu disser que quero estudar X / deixar pra depois → `want`.
+- `repo_local` / resposta só operacional / meta sobre o plugin → **NÃO** registre.
 
 ### Feedback obrigatório
-Se gravou, diga em uma linha: `Salvei no perfil: …`. Se não gravou de propósito,
-não precisa anunciar.
+Se gravou, diga em uma linha: `Salvei no perfil: …` ou `Salvei na fila: …`.
+Se a CLI respondeu “Já estava na fila” / “Ignorado”, não precisa insistir.
 
 ## Comandos
 - `/study-log` — registrar coberto ou fila de propósito
 - `/study-plan` — raio-x (ou onboarding se vazio)
+- `/study-probe` — sondagem ativa; ajusta covered/want com base em perguntas
 - `/study-deep` — trilha curada via subagent `study-researcher`
