@@ -10,28 +10,39 @@ unavailable.
 ## CLI (preferred)
 ```bash
 python3 ~/.cursor/learning/cli.py want --topic "TOPIC" --note "why"
-python3 ~/.cursor/learning/cli.py covered --topic "TOPIC" --level "beginner|intermediate|advanced" --note "context"
+python3 ~/.cursor/learning/cli.py covered --topic "TOPIC" --level "beginner|intermediate|advanced" --note "probe evidence"
 ```
 
-If `~/.cursor/learning/cli.py` is missing, tell the user to open a new chat so
-`sessionStart` can install it, or use `/study-log`.
+## Marker fallback (CLI missing)
+If `~/.cursor/learning/cli.py` is missing, do not silently drop a queue write.
+Emit a `want` marker as an isolated final line so `afterAgentResponse` can
+persist it:
 
-## Marker fallback (afterAgentResponse hook)
-Isolated line at the end of the reply:
 ```
 <!-- LEARNING-WANT topic="TOPIC" note="context" -->
-<!-- LEARNING-LOG topic="TOPIC" level="intermediate" note="context" -->
 ```
+
+There is **no** `covered` marker. The historical `LEARNING-LOG` marker is
+retired — `covered` requires one-topic probe evidence via the CLI.
+
+After a marker, say it was queued via fallback and that a new chat lets
+`sessionStart` install the CLI for direct writes. If both the CLI and the hook
+are unavailable, the marker is inert; do not claim it was saved.
 
 ## When to write
 - `concept_gap` or “add to queue / study later” → `want`
-- Explicit user request or `/study-log` → `want` or `covered` as requested
-- Successful `study-probe` evidence → `covered` (gaps stay or become `want`)
+- Explicit queue request (`/study-log`, “study later”) → `want`
+- Successful one-topic `study-probe` (≥50% correct on that topic’s answers) →
+  `covered` with a short evidence note; gaps stay or become `want`
 
 ## When not to write
 - `repo_local` answers, purely operational replies, or plugin meta
-- Do **not** infer `covered` merely because a concept was explained in chat
+- Do **not** infer `covered` from self-report, teaching exposure, finishing a
+  study track, or any non-probe path
+- Do **not** write `covered` without one-topic probe evidence
 
 ## Required feedback
-After a successful write: one line `Saved to profile: …` or `Saved to queue: …`.
-If the CLI replies “Already in queue” / “Ignored”, do not insist.
+- Direct CLI success: one line `Saved to profile: …` or `Saved to queue: …`
+- Marker fallback: `Queued via fallback (marker); open a new chat to enable
+  direct writes`
+- If the CLI replies “Already in queue” / “Ignored”, do not insist.
