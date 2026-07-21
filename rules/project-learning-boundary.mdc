@@ -1,0 +1,27 @@
+---
+description: Separate transferable learning from repository-specific context when project code, stack, symbols, or local candidates influence a study decision.
+alwaysApply: false
+---
+
+When project context influences a study decision, keep global learning
+transferable and leave repo-specific detail local.
+
+## Transferability test
+Ask: “Would this still be useful without opening this repository?”
+- Yes → eligible for the global profile / queue
+- No → keep under project learning only
+
+## Boundaries
+- Keep symbols, paths, environment variables, and class names project-local.
+- Generalize a local example into a broader concept when that concept is the
+  real learning target (then queue the generalized topic, not the symbol).
+- If `LEARNING-PROJECT` is present, use stack/candidates to calibrate what
+  makes sense here. Candidates are **not** the global queue.
+- Never auto-promote project candidates into the global queue. Promote only on
+  a real gap (conceptual question, `study-probe`, or an explicit request).
+
+## Local sheet
+`.cursor/learning/project.md` holds stack, local candidates, and probe notes
+for this repository. Queue and attested knowledge live in the global profile.
+Stack discovery / `project-sync` is owned by Skills (`study-plan`,
+`study-probe`), not by this rule.

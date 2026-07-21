@@ -19,6 +19,19 @@ Use `LEARNING-PROFILE` and `LEARNING-PROJECT` from context when already present.
 The global profile is authoritative for queue and covered knowledge; the project
 sheet only supplies local stack and candidates.
 
+## Missing project sheet
+If the repo has clear stack signals (`package.json`, `pyproject.toml`,
+`Dockerfile`, `compose.yml`, `Cargo.toml`, README, etc.) and there is no useful
+`LEARNING-PROJECT`, you may sync 3–8 specific candidates once (no bare base
+languages):
+
+```bash
+python3 ~/.cursor/learning/cli.py project-sync --stack "A;B" --candidates "topic1;topic2;topic3"
+```
+
+Do not sync on every invocation — only when the sheet is missing/empty or the
+user asks.
+
 ## Empty profile
 
 Ask at most three short onboarding questions:
