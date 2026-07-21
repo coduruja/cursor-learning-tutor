@@ -294,12 +294,11 @@ deliberate profile updates.
 - Restates the full `covered` / `want` / `init` CLI block. That duplicates the
   persistence contract that `learning-recording.mdc` is meant to own (for
   `want`/`covered`; `init` is intentionally skill-side today).
-- **Evidence tension (open):** “User describes something they learned →
-  `covered`” allows attesting mastery without a probe or teach-back rubric.
-  That conflicts with the direction of `learning-recording` (“never infer
-  `covered` merely because a concept was explained”) and with `study-probe`’s
-  evidence model. Whether deliberate `/study-log` is an intentional escape
-  hatch is **not decided** yet (see open questions; also migration step 4).
+- **Evidence policy (decision made):** “User describes something they learned”
+  is not enough to record `covered`. `/study-log` will no longer be an escape
+  hatch for attesting knowledge: it must route the user to a one-topic
+  `study-probe`, and that topic becomes `covered` only with at least 50%
+  correct on its probe questions.
 - No marker fallback if CLI is missing (recording rule has markers; this Skill
   only says open a new chat).
 - No transferability check — the user can force-log a repo-local symbol into
@@ -363,8 +362,9 @@ scored answers; uses an on-demand rubric.
 - Does not mention coordinating with `learning-recording` or `concept-gap-
   capture` if those rules also load during a probe session (**open**
   integration behavior).
-- Choosing 5–10 topics every run may be heavy for a short “quick check”
-  request — no light mode is defined (**open**, product decision).
+- Choosing 5–10 topics every run conflicts with the decided one-topic probe
+  model (Decision 1A). Implementation must narrow selection to a single topic
+  and ask multiple questions about that topic only.
 
 ### `study-probe/references/assessment-rubric.md` — findings
 
@@ -385,8 +385,9 @@ scored answers; uses an on-demand rubric.
   `project-learning-boundary.mdc`. **Open:** keep a short reminder in the
   rubric (probe-local examples are useful) vs. point at the rule and keep only
   probe-specific examples/scoring here.
-- This file is the de facto evidence policy for `covered`, but `study-log` and
-  the historical “taught in chat” path are not bound to it yet (step 4).
+- This file is the canonical evidence policy for `covered`. The implementation
+  must bind `study-log`, `study-probe`, and `learning-recording` to it: neither
+  self-report nor an explanation in chat can create a `covered` entry.
 
 ### `study-deep` — findings
 
@@ -428,8 +429,8 @@ concept_gap (rule) ──want──► queue
                                    │
                                    └──(? open)──► study-probe
 
-study-log ── explicit covered/want/init ──► profile
-             (bypass / override path; evidence rules undecided)
+study-log ── explicit want/init ──► profile
+          └── request to attest learning ──► study-probe ──► covered/want
 ```
 
 Shared dependencies every Skill assumes:
@@ -438,13 +439,52 @@ Shared dependencies every Skill assumes:
 - Optional injected `LEARNING-PROFILE` / `LEARNING-PROJECT`
 - Global profile for queue/covered; project sheet for local context only
 
+### Skills decisions and implementation plan
+
+#### Decision 1 — evidence required for `covered`
+
+Self-report is not evidence. Saying “I understand X” or “I learned X”, receiving
+an explanation, reading a study track, or completing an operational task must
+not create a `covered` entry.
+
+#### Decision 1A — one-topic probe; 50% applies to that topic
+
+A probe is always about **one** topic, never a multi-topic exam across the
+whole queue/stack. The 50% threshold is scored **for that topic only**.
+
+If the user wants to attest several topics, run separate one-topic probes
+(sequentially or on later turns). Never aggregate unrelated topics into one
+score and then write multiple `covered` entries from that aggregate.
+
+Implementation:
+
+1. Make `study-probe` the only workflow that can attest new knowledge as
+   `covered`.
+2. Change `study-probe` topic selection: pick exactly one transferable topic
+   (user-supplied, `queue-next`, or an explicit choice). Do not select 5–10
+   topics in a single probe.
+3. Ask multiple short practical questions about that one topic; wait for
+   answers; score with the rubric.
+4. If at least 50% of that topic’s answers are correct → record `covered` for
+   that topic with an evidence note. Otherwise keep/add `want` for the topic;
+   do not write `covered`.
+5. Change `study-log`: requests to mark knowledge as learned must route to a
+   one-topic probe; `study-log` remains responsible for `want`, `init`, and
+   profile correction workflows that do not attest new knowledge.
+6. Change `learning-recording`: accept a new `covered` write only when it comes
+   with one-topic probe evidence; never infer it from self-report or teaching
+   exposure.
+7. Change the assessment rubric to state: one topic per probe; ≥50% correct on
+   that topic’s questions; evidence note required for every accepted
+   `covered`.
+8. Add scenarios/tests proving that self-report does not write `covered`, a
+   failed one-topic probe keeps/adds `want`, a passing one-topic probe writes
+   `covered` for that topic only, and multi-topic aggregation is forbidden.
+
 ### Open questions (Skills) — undecided, keep visible
 
 These are recorded for later decisions. Do not treat them as resolved:
 
-1. **Evidence policy for `covered`:** Is `/study-log` “I learned X” an intentional
-   override of the probe rubric, or should log require the same evidence bar /
-   an explicit “force covered” confirmation?
 2. **Onboarding owner:** Empty profile → `study-plan`, `study-log`, or either
    with identical steps?
 3. **Auto-invoke collision:** Tighten `study-plan` vs `study-probe`
@@ -458,8 +498,11 @@ These are recorded for later decisions. Do not treat them as resolved:
 6. **Transferability copies:** One canonical rule + short reminders, or allow
    the rubric to keep a full gate because probe examples are valuable there?
 7. **Deep → probe handoff:** Should `study-deep` always offer a probe after the
-   track?
-8. **Probe light mode:** Support fewer than 5 questions for quick checks?
+   track? (If yes, that probe must still be one-topic, matching Decisions 1/1A.)
+8. ~~**Probe light mode:** Support fewer than 5 questions for quick checks?~~
+   **Superseded by Decision 1A:** probes are one-topic; question count is about
+   depth on that topic, not how many topics to pack in. Exact question count
+   per topic can still be tuned later, but multi-topic “light exams” are out.
 9. **Marker fallback in Skills:** Should `study-log` / others emit markers when
    CLI is missing, or is “open a new chat” enough?
 10. **Force-log of repo-local topics via `study-log`:** Allow, warn, or block?
@@ -542,7 +585,8 @@ mistakes observed while developing this repository.
    (Ownership pass using the overlap map and the Skills audit open questions —
    decide per item, then edit; leave undecided items listed in the doc.)
 4. Define one evidence policy for `covered` before changing recording behavior.
-   (Blocks on Skills open question 1: `study-log` override vs probe bar.)
+   **Decision made:** only a one-topic `study-probe` with at least 50% correct
+   on that topic can attest new knowledge. Multi-topic probes are forbidden.
 5. Add automated checks for:
    - valid `.mdc` frontmatter
    - at most one small `alwaysApply: true` runtime rule
@@ -568,10 +612,10 @@ mistakes observed while developing this repository.
 
 | Prompt | Expected Skill | Expected result | Open risk |
 |---|---|---|---|
-| `/study-log` + “I learned Docker” | `study-log` | Profile `covered` write | Evidence bar vs probe (Q1) |
+| `/study-log` + “I learned Docker” | `study-log` → one-topic `study-probe` | No immediate write; ≥50% on Docker → `covered` | — |
 | “What is saved for study?” | `study-plan` | Snapshot; no quiz | Description collision with probe (Q3) |
 | `/study-plan` in repo without project sheet | `study-plan` | Optional `project-sync` once | — |
-| `/study-probe` | `study-probe` + rubric | Questions → wait → score → write | CLI overlap with recording rule (Q5) |
+| `/study-probe` | `study-probe` + rubric | One topic → questions → wait → ≥50% → write | CLI overlap with recording rule (Q5) |
 | `/study-deep` with empty topic | `study-deep` | `queue-next` or ask; subagent track | No probe handoff (Q7) |
 | Empty profile + `/study-plan` | `study-plan` | Onboarding `init` + wants | Overlap with `study-log` onboarding (Q2) |
 | Empty profile + `/study-log` alone | `study-log` | Onboarding `init` + ask topic | Same as above (Q2) |
@@ -592,6 +636,8 @@ mistakes observed while developing this repository.
 - Skill auto-invoke descriptions do not routinely collide (plan vs probe).
 - One evidence policy for `covered` is documented and reflected in
   `study-log`, `study-probe`, and `learning-recording` without contradiction.
+- Every probe assesses exactly one topic; the ≥50% threshold is scored for that
+  topic only; multi-topic aggregate probes are not used.
 
 ## Recommendation
 
@@ -605,7 +651,8 @@ while still removing the current monolithic always-on context cost.
 
 **Status note:** after extracting `tutor-core`, the three intelligent rules were
 added together (step 2) so capture, recording, and project boundary could be
-validated as one coherent set. A Skills-only inspection pass is now recorded in
-this document (per-Skill findings + open questions). The next focus remains
-step 3 — ownership decisions on those open questions — then a single evidence
-policy for `covered` (step 4). Agents/hooks inspection is still deferred.
+validated as one coherent set. A Skills-only inspection pass is recorded in
+this document. Decisions 1 and 1A lock the evidence policy: only a one-topic
+`study-probe` with ≥50% correct on that topic can write `covered`. Remaining
+open Skill questions still need ownership decisions before code changes for
+step 3/4. Agents/hooks inspection is still deferred.
