@@ -1,12 +1,12 @@
 {
   "name": "pedro-learning-marketplace",
   "owner": "Pedro Magalhães",
-  "description": "Marketplace pessoal com o plugin Learning Tutor.",
+  "description": "Personal marketplace with the Learning Tutor plugin.",
   "plugins": [
     {
       "name": "cursor-learning-tutor",
       "source": ".",
-      "description": "Tutor de aprendizado: calibra ao nível, captura lacunas na fila, stack por projeto, /study-probe e /study-deep."
+      "description": "Learning tutor: calibrates to your level, queues gaps, per-project stack, /study-probe and /study-deep."
     }
   ]
 }

@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
-"""CLI estável do Learning Tutor.
+"""Stable Learning Tutor CLI.
 
-Uso típico (caminho estável após o primeiro sessionStart):
-  python3 ~/.cursor/learning/cli.py covered --topic "Closures" --level intermediário --note "..."
-  python3 ~/.cursor/learning/cli.py want --topic "Docker" --note "pro deploy"
+Typical usage (stable path after the first sessionStart):
+  python3 ~/.cursor/learning/cli.py covered --topic "Closures" --level intermediate --note "..."
+  python3 ~/.cursor/learning/cli.py want --topic "Docker" --note "for deploy"
   python3 ~/.cursor/learning/cli.py done --topic "Docker"
-  python3 ~/.cursor/learning/cli.py init --level intermediário --focus "backend"
+  python3 ~/.cursor/learning/cli.py init --level intermediate --focus "backend"
   python3 ~/.cursor/learning/cli.py show
   python3 ~/.cursor/learning/cli.py project-show
   python3 ~/.cursor/learning/cli.py project-sync --stack "Next.js;Prisma" --candidates "App Router;Prisma migrations"
@@ -33,7 +33,7 @@ def _load_lib():
             assert spec.loader is not None
             spec.loader.exec_module(mod)
             return mod
-    raise SystemExit("lib_profile.py não encontrado. Reinstale o plugin Learning Tutor.")
+    raise SystemExit("lib_profile.py not found. Reinstall the Learning Tutor plugin.")
 
 
 def main() -> None:
@@ -41,37 +41,37 @@ def main() -> None:
     parser = argparse.ArgumentParser(prog="learning-cli", description="Learning Tutor profile CLI")
     sub = parser.add_subparsers(dest="cmd", required=True)
 
-    p_init = sub.add_parser("init", help="Cria/atualiza meta do perfil")
-    p_init.add_argument("--level", default="intermediário")
-    p_init.add_argument("--focus", default="não definido")
+    p_init = sub.add_parser("init", help="Create/update profile meta")
+    p_init.add_argument("--level", default="intermediate")
+    p_init.add_argument("--focus", default="undefined")
 
-    p_cov = sub.add_parser("covered", help="Registra tópico coberto/aprendido")
+    p_cov = sub.add_parser("covered", help="Record a covered/learned topic")
     p_cov.add_argument("--topic", required=True)
-    p_cov.add_argument("--level", default="intermediário")
+    p_cov.add_argument("--level", default="intermediate")
     p_cov.add_argument("--note", default="")
 
-    p_want = sub.add_parser("want", help="Adiciona tópico à fila de estudo")
+    p_want = sub.add_parser("want", help="Add a topic to the study queue")
     p_want.add_argument("--topic", required=True)
     p_want.add_argument("--note", default="")
 
-    p_done = sub.add_parser("done", help="Marca item da fila como feito")
+    p_done = sub.add_parser("done", help="Mark a queue item as done")
     p_done.add_argument("--topic", required=True)
 
-    sub.add_parser("show", help="Mostra o perfil")
-    sub.add_parser("queue-next", help="Mostra o primeiro item aberto da fila")
+    sub.add_parser("show", help="Show the profile")
+    sub.add_parser("queue-next", help="Show the first open queue item")
 
-    p_ps = sub.add_parser("project-show", help="Mostra .cursor/learning/project.md")
-    p_ps.add_argument("--cwd", default="", help="Root do projeto (default: cwd)")
+    p_ps = sub.add_parser("project-show", help="Show .cursor/learning/project.md")
+    p_ps.add_argument("--cwd", default="", help="Project root (default: cwd)")
 
-    p_sync = sub.add_parser("project-sync", help="Atualiza stack/candidatos/sondagem do projeto")
-    p_sync.add_argument("--stack", default="", help="Itens separados por ; ou ,")
-    p_sync.add_argument("--candidates", default="", help="Candidatos separados por ;")
-    p_sync.add_argument("--probe-summary", default="", help="Resumo da última sondagem")
-    p_sync.add_argument("--cwd", default="", help="Root do projeto (default: cwd)")
+    p_sync = sub.add_parser("project-sync", help="Update project stack/candidates/probe")
+    p_sync.add_argument("--stack", default="", help="Items separated by ; or ,")
+    p_sync.add_argument("--candidates", default="", help="Candidates separated by ;")
+    p_sync.add_argument("--probe-summary", default="", help="Last probe summary")
+    p_sync.add_argument("--cwd", default="", help="Project root (default: cwd)")
 
-    p_drop = sub.add_parser("project-drop", help="Remove um candidato do projeto")
+    p_drop = sub.add_parser("project-drop", help="Remove a project candidate")
     p_drop.add_argument("--topic", required=True)
-    p_drop.add_argument("--cwd", default="", help="Root do projeto (default: cwd)")
+    p_drop.add_argument("--cwd", default="", help="Project root (default: cwd)")
 
     args = parser.parse_args()
     cwd = args.cwd if getattr(args, "cwd", "") else None
@@ -89,7 +89,7 @@ def main() -> None:
         print(lib.read_profile())
     elif args.cmd == "queue-next":
         topic = lib.first_open_queue_topic()
-        print(topic if topic else "(fila vazia)")
+        print(topic if topic else "(empty queue)")
     elif args.cmd == "project-show":
         print(lib.project_show(cwd))
     elif args.cmd == "project-sync":
@@ -109,5 +109,5 @@ if __name__ == "__main__":
     try:
         main()
     except Exception as exc:  # noqa: BLE001 — CLI must never crash the agent awkwardly
-        print(f"Erro: {exc}", file=sys.stderr)
+        print(f"Error: {exc}", file=sys.stderr)
         sys.exit(1)

@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 """
-afterAgentResponse: captura marcadores LEARNING-LOG / LEARNING-WANT.
+afterAgentResponse: capture LEARNING-LOG / LEARNING-WANT markers.
 
-Lê o JSON do hook via stdin, procura os marcadores que a rule instrui o agente
-a emitir, e atualiza ~/.cursor/learning/profile.md.
+Reads hook JSON from stdin, finds markers the rule instructs the agent to emit,
+and updates ~/.cursor/learning/profile.md.
 """
 
 from __future__ import annotations

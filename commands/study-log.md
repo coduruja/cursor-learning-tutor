@@ -1,30 +1,31 @@
-Registre algo no meu perfil de aprendizado (`~/.cursor/learning/profile.md`).
+Record something in my learning profile (`~/.cursor/learning/profile.md`).
 
-## O que registrar
-- Se eu passar um tópico (ou descrever o que aprendemos): **coberto**.
-- Se eu disser "quero estudar X" / "coloca X na fila": **fila**.
-- Se o perfil estiver vazio e eu só rodar o comando: faça onboarding em 2
-  perguntas (nível geral + foco) e rode `init`, depois pergunte o primeiro tópico.
+## What to record
+- If I pass a topic (or describe what we learned): **covered**.
+- If I say "I want to study X" / "add X to the queue": **queue**.
+- If the profile is empty and I only run the command: do onboarding in 2
+  questions (overall level + focus), run `init`, then ask for the first topic.
 
-## Nota sobre captura automática
-Perguntas `concept_gap` (“o que é X?”, “como funciona X?”) **já vão sozinhas
-para a fila** pela rule do tutor. Use `/study-log` para override manual,
-correções, ou quando a captura automática não rodou.
+## Note on automatic capture
+`concept_gap` questions (“what is X?”, “how does X work?”) **already go to the
+queue automatically** via the tutor rule. Use `/study-log` for manual overrides,
+corrections, or when automatic capture did not run.
 
-## Como gravar (obrigatório)
-Use a CLI estável (não edite o markdown na mão a menos que a CLI falte):
+## How to write (required)
+Use the stable CLI (do not edit the markdown by hand unless the CLI is missing):
 
 ```bash
-python3 ~/.cursor/learning/cli.py covered --topic "..." --level "iniciante|intermediário|avançado" --note "..."
-# ou
+python3 ~/.cursor/learning/cli.py covered --topic "..." --level "beginner|intermediate|advanced" --note "..."
+# or
 python3 ~/.cursor/learning/cli.py want --topic "..." --note "..."
-# ou
+# or
 python3 ~/.cursor/learning/cli.py init --level "..." --focus "..."
 ```
 
-Se a CLI não existir, avise que preciso abrir um **novo chat** para o
-`sessionStart` instalar `~/.cursor/learning/cli.py`, ou copie o helper do plugin.
+If the CLI does not exist, tell me to open a **new chat** so `sessionStart`
+can install `~/.cursor/learning/cli.py`, or copy the helper from the plugin.
 
-## Resposta
-Seja curto: confirme com `Salvei no perfil: …` e mostre se foi **coberto** ou **fila**.
-Não pesquise na web.
+## Reply
+Keep it short: confirm with `Saved to profile: …` and say whether it was
+**covered** or **queue**.
+Do not search the web.

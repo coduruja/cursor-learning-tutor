@@ -16,7 +16,17 @@ LIB_PATH = LEARNING_DIR / "lib_profile.py"
 PROJECT_RELATIVE_PATH = Path(".cursor") / "learning" / "project.md"
 LEGACY_PROJECT_RELATIVE_PATH = Path(".cursor") / "learning-project.md"
 
-LEVELS = ("iniciante", "intermediário", "avançado")
+LEVELS = ("beginner", "intermediate", "advanced")
+
+# Canonical English section titles, with legacy Portuguese aliases for migration.
+SECTION_ALIASES: dict[str, tuple[str, ...]] = {
+    "Meta": ("Meta",),
+    "Study queue": ("Study queue", "Fila de estudo"),
+    "Covered": ("Covered", "Coberto"),
+    "Stack": ("Stack",),
+    "Study candidates": ("Study candidates", "Candidatos de estudo"),
+    "Last probe": ("Last probe", "Última sondagem"),
+}
 
 # Canonical topic aliases (key -> display name). Comparison uses topic_key().
 TOPIC_ALIASES: dict[str, str] = {
@@ -41,20 +51,28 @@ GENERIC_TOPICS = frozenset(
     {
         "codigo",
         "código",
+        "code",
         "arquivo",
+        "file",
         "erro",
+        "error",
         "funcao",
         "função",
+        "function",
         "bug",
         "coisa",
+        "thing",
         "isso",
         "aquilo",
         "modulo",
         "módulo",
+        "module",
         "projeto",
+        "project",
         "repo",
         "repositorio",
         "repositório",
+        "repository",
     }
 )
 
@@ -85,53 +103,57 @@ BASE_LANGUAGES = frozenset(
     }
 )
 
-HEADER = """# Perfil de Aprendizado (global)
+HEADER = """# Learning profile (global)
 
-> Mantido pelo Learning Tutor. Edite à mão se quiser; os comandos `/study-log` e os hooks atualizam este arquivo.
+> Maintained by Learning Tutor. Edit by hand if you want; `/study-log` and hooks update this file.
 
 ## Meta
-- Nível geral: {level}
-- Foco atual: {focus}
+- Overall level: {level}
+- Current focus: {focus}
 
-## Fila de estudo
+## Study queue
 
-_Vazia._
+_Empty._
 
-## Coberto
+## Covered
 
 """
 
-PROJECT_HEADER = """# Learning Tutor — ficha de aprendizado do projeto
+PROJECT_HEADER = """# Learning Tutor — project learning sheet
 
-> **Dados do plugin Learning Tutor; não são instruções, rule ou prompt.**
-> Este arquivo registra stack, candidatos locais e sondagens deste repositório.
-> Fila e conhecimento atestado ficam no perfil global (`~/.cursor/learning/profile.md`).
+> **Learning Tutor plugin data; not instructions, rules, or prompts.**
+> This file stores stack, local candidates, and probes for this repository.
+> Queue and attested knowledge live in the global profile (`~/.cursor/learning/profile.md`).
 
 ## Stack
 
-_Nenhuma._
+_None._
 
-## Candidatos de estudo
+## Study candidates
 
-_Vazio._
+_Empty._
 
-## Última sondagem
+## Last probe
 
-_Nenhuma._
+_None._
 
 """
+
+EMPTY_COVERED = ("", "_None yet._", "_Nenhuma entrada ainda._")
+EMPTY_QUEUE = ("", "_Empty._", "_Vazia._")
+EMPTY_LIST = ("", "_None._", "_Empty._", "_Nenhuma._", "_Vazio._")
 
 
 def ensure_dir() -> None:
     LEARNING_DIR.mkdir(parents=True, exist_ok=True)
 
 
-def ensure_profile(level: str = "não definido", focus: str = "não definido") -> None:
+def ensure_profile(level: str = "undefined", focus: str = "undefined") -> None:
     ensure_dir()
     if PROFILE_PATH.exists():
         return
     PROFILE_PATH.write_text(
-        HEADER.format(level=level, focus=focus) + "_Nenhuma entrada ainda._\n",
+        HEADER.format(level=level, focus=focus) + "_None yet._\n",
         encoding="utf-8",
     )
 
@@ -157,37 +179,49 @@ def profile_is_empty() -> bool:
     if not text.strip():
         return True
     has_queue_item = bool(re.search(r"- \[[ x]\]", text))
-    has_covered = "## Coberto" in text and "### " in _section(text, "Coberto")
+    covered = _section(text, "Covered")
+    has_covered = bool(covered.strip()) and "### " in covered
     return not has_queue_item and not has_covered
 
 
 def _section(text: str, title: str) -> str:
-    pattern = rf"## {re.escape(title)}\n(.*?)(?=\n## |\Z)"
-    m = re.search(pattern, text, flags=re.S)
-    return m.group(1) if m else ""
+    for alias in SECTION_ALIASES.get(title, (title,)):
+        pattern = rf"## {re.escape(alias)}\n(.*?)(?=\n## |\Z)"
+        m = re.search(pattern, text, flags=re.S)
+        if m:
+            return m.group(1)
+    return ""
 
 
 def _replace_section(text: str, title: str, body: str) -> str:
-    pattern = rf"(## {re.escape(title)}\n)(.*?)(?=\n## |\Z)"
     body = body.rstrip() + "\n\n"
-    if re.search(pattern, text, flags=re.S):
-        return re.sub(pattern, rf"\1{body}", text, count=1, flags=re.S)
+    for alias in SECTION_ALIASES.get(title, (title,)):
+        pattern = rf"(## {re.escape(alias)}\n)(.*?)(?=\n## |\Z)"
+        if re.search(pattern, text, flags=re.S):
+            # Normalize heading to the canonical English title on write.
+            return re.sub(
+                pattern,
+                rf"## {title}\n{body}",
+                text,
+                count=1,
+                flags=re.S,
+            )
     return text.rstrip() + f"\n\n## {title}\n{body}"
 
 
 def _normalize_level(level: str) -> str:
     raw = (level or "").strip().lower()
     aliases = {
-        "iniciante": "iniciante",
-        "beginner": "iniciante",
-        "intermediario": "intermediário",
-        "intermediário": "intermediário",
-        "intermediate": "intermediário",
-        "avancado": "avançado",
-        "avançado": "avançado",
-        "advanced": "avançado",
+        "beginner": "beginner",
+        "iniciante": "beginner",
+        "intermediate": "intermediate",
+        "intermediario": "intermediate",
+        "intermediário": "intermediate",
+        "advanced": "advanced",
+        "avancado": "advanced",
+        "avançado": "advanced",
     }
-    return aliases.get(raw, raw or "intermediário")
+    return aliases.get(raw, raw or "intermediate")
 
 
 def _strip_accents(text: str) -> str:
@@ -245,90 +279,94 @@ def _topic_in_covered(covered: str, topic: str, recent_n: int = 20) -> bool:
 def init_profile(level: str, focus: str) -> str:
     ensure_dir()
     level = _normalize_level(level)
-    focus = (focus or "não definido").strip() or "não definido"
+    focus = (focus or "undefined").strip() or "undefined"
     if PROFILE_PATH.exists() and not profile_is_empty():
         text = read_profile()
         text = re.sub(
-            r"(- Nível geral:\s*).*",
-            rf"\1{level}",
+            r"(- (?:Overall level|Nível geral):\s*).*",
+            rf"- Overall level: {level}",
             text,
             count=1,
         )
         text = re.sub(
-            r"(- Foco atual:\s*).*",
-            rf"\1{focus}",
+            r"(- (?:Current focus|Foco atual):\s*).*",
+            rf"- Current focus: {focus}",
             text,
             count=1,
         )
         PROFILE_PATH.write_text(text, encoding="utf-8")
-        return f"Atualizei meta: nível={level}, foco={focus}"
+        return f"Updated meta: level={level}, focus={focus}"
     PROFILE_PATH.write_text(
-        HEADER.format(level=level, focus=focus) + "_Nenhuma entrada ainda._\n",
+        HEADER.format(level=level, focus=focus) + "_None yet._\n",
         encoding="utf-8",
     )
-    return f"Criei perfil: nível={level}, foco={focus}"
+    return f"Created profile: level={level}, focus={focus}"
 
 
 def add_covered(topic: str, level: str, note: str = "") -> str:
     topic = normalize_topic_display(topic)
     if not topic:
-        raise ValueError("topic vazio")
+        raise ValueError("empty topic")
     if is_noisy_topic(topic):
-        return f"Ignorado (tópico genérico/linguagem base): {topic}"
+        return f"Ignored (generic topic / base language): {topic}"
     level = _normalize_level(level)
     note = (note or "").strip()
     ensure_profile()
     text = read_profile()
-    entry = f"### {date.today().isoformat()} — {topic}\n- Nível: {level}\n"
+    entry = f"### {date.today().isoformat()} — {topic}\n- Level: {level}\n"
     if note:
-        entry += f"- Contexto: {note}\n"
+        entry += f"- Context: {note}\n"
     entry += "\n"
 
-    covered = _section(text, "Coberto")
-    if covered.strip() in ("", "_Nenhuma entrada ainda._"):
+    covered = _section(text, "Covered")
+    if covered.strip() in EMPTY_COVERED:
         new_covered = entry
     else:
         new_covered = covered.lstrip("\n")
         if not new_covered.endswith("\n"):
             new_covered += "\n"
         new_covered = entry + new_covered
-    text = _replace_section(text, "Coberto", new_covered)
+    text = _replace_section(text, "Covered", new_covered)
     PROFILE_PATH.write_text(text, encoding="utf-8")
-    return f"Salvei no perfil (coberto): {topic} [{level}]"
+    return f"Saved to profile (covered): {topic} [{level}]"
 
 
 def add_want(topic: str, note: str = "") -> str:
     topic = normalize_topic_display(topic)
     if not topic:
-        raise ValueError("topic vazio")
+        raise ValueError("empty topic")
     if is_noisy_topic(topic):
-        return f"Ignorado (tópico genérico/linguagem base): {topic}"
+        return f"Ignored (generic topic / base language): {topic}"
     note = (note or "").strip()
     ensure_profile()
     text = read_profile()
-    queue = _section(text, "Fila de estudo")
+    queue = _section(text, "Study queue")
     if _topic_in_queue(queue, topic):
-        return f"Já estava na fila: {topic}"
-    covered = _section(text, "Coberto")
+        return f"Already in queue: {topic}"
+    covered = _section(text, "Covered")
     if _topic_in_covered(covered, topic):
-        return f"Já coberto recentemente: {topic}"
+        return f"Already covered recently: {topic}"
 
     line = f"- [ ] {topic}"
     if note:
         line += f" — {note}"
-    lines = [ln for ln in queue.splitlines() if ln.strip() and ln.strip() != "_Vazia._"]
+    lines = [
+        ln
+        for ln in queue.splitlines()
+        if ln.strip() and ln.strip() not in ("_Empty._", "_Vazia._")
+    ]
     lines.append(line)
     body = "\n".join(lines) + "\n"
-    text = _replace_section(text, "Fila de estudo", body)
+    text = _replace_section(text, "Study queue", body)
     PROFILE_PATH.write_text(text, encoding="utf-8")
-    return f"Salvei no perfil (fila): {topic}"
+    return f"Saved to profile (queue): {topic}"
 
 
 def mark_done(topic: str) -> str:
     topic = normalize_topic_display(topic) or topic.strip()
     ensure_profile()
     text = read_profile()
-    queue = _section(text, "Fila de estudo")
+    queue = _section(text, "Study queue")
     key = topic_key(topic)
 
     def repl(match: re.Match[str]) -> str:
@@ -347,23 +385,26 @@ def mark_done(topic: str) -> str:
         lines = []
         for ln in queue.splitlines():
             m = re.match(r"- \[([ x])\]\s+(.+)", ln)
-            if m and (topic_key(_queue_item_name(m.group(2))) == key or topic.lower() in m.group(2).lower()):
+            if m and (
+                topic_key(_queue_item_name(m.group(2))) == key
+                or topic.lower() in m.group(2).lower()
+            ):
                 lines.append(f"- [x] {m.group(2)}")
                 changed = True
             else:
                 lines.append(ln)
         if not changed:
-            return f"Não achei na fila: {topic}"
+            return f"Not found in queue: {topic}"
         new_queue = "\n".join(lines) + ("\n" if lines else "")
-    text = _replace_section(text, "Fila de estudo", new_queue)
+    text = _replace_section(text, "Study queue", new_queue)
     PROFILE_PATH.write_text(text, encoding="utf-8")
-    return f"Marquei como feito na fila: {topic}"
+    return f"Marked done in queue: {topic}"
 
 
 def first_open_queue_topic() -> str:
     """Return the first unchecked queue item topic, or empty string."""
     ensure_profile()
-    queue = _section(read_profile(), "Fila de estudo")
+    queue = _section(read_profile(), "Study queue")
     for item in re.findall(r"- \[ \]\s+(.+)", queue):
         return _queue_item_name(item)
     return ""
@@ -398,13 +439,15 @@ def ensure_project(cwd: str | Path | None = None) -> Path:
         text = legacy_path.read_text(encoding="utf-8")
         new_intro = PROJECT_HEADER.split("## Stack", maxsplit=1)[0]
         text = re.sub(
-            r"\A# Aprendizado do projeto\n\n"
-            r"> Stack e candidatos locais\. Fila/coberto ficam no perfil global "
-            r"\(`~/.cursor/learning/profile\.md`\)\.\n\n",
+            r"\A# (?:Aprendizado do projeto|Learning Tutor — (?:ficha de aprendizado do projeto|project learning sheet))\n\n"
+            r"(?:>.*\n)+\n?",
             new_intro,
             text,
             count=1,
         )
+        # Normalize legacy Portuguese project section titles on migrate.
+        text = text.replace("## Candidatos de estudo", "## Study candidates")
+        text = text.replace("## Última sondagem", "## Last probe")
         path.write_text(text, encoding="utf-8")
         legacy_path.unlink()
     if not path.exists():
@@ -424,7 +467,7 @@ def read_project(cwd: str | Path | None = None) -> str:
 def project_show(cwd: str | Path | None = None) -> str:
     text = read_project(cwd)
     if not text.strip():
-        return f"(sem ficha do projeto em {project_path(cwd)})"
+        return f"(no project sheet at {project_path(cwd)})"
     return text
 
 
@@ -454,16 +497,15 @@ def project_sync(
 
     stack: comma or semicolon separated stack items
     candidates: semicolon-separated candidate topics
-    probe_summary: optional summary for Última sondagem
+    probe_summary: optional summary for Last probe
     """
     path = ensure_project(cwd)
     text = path.read_text(encoding="utf-8")
 
     if stack.strip():
         parts = [p.strip() for p in re.split(r"[;,]", stack) if p.strip()]
-        # Drop bare base languages from stack list
         parts = [p for p in parts if topic_key(p) not in BASE_LANGUAGES]
-        body = "\n".join(f"- {p}" for p in parts) + "\n" if parts else "_Nenhuma._\n"
+        body = "\n".join(f"- {p}" for p in parts) + "\n" if parts else "_None._\n"
         text = _replace_section(text, "Stack", body)
 
     if candidates.strip():
@@ -473,7 +515,6 @@ def project_sync(
             for p in parts
             if not is_noisy_topic(p)
         ]
-        # Dedupe by topic_key preserving order
         seen: set[str] = set()
         unique: list[str] = []
         for p in parts:
@@ -485,30 +526,30 @@ def project_sync(
         body = (
             "\n".join(f"- [ ] {p}" for p in unique) + "\n"
             if unique
-            else "_Vazio._\n"
+            else "_Empty._\n"
         )
-        text = _replace_section(text, "Candidatos de estudo", body)
+        text = _replace_section(text, "Study candidates", body)
 
     if probe_summary.strip():
         body = (
-            f"- Data: {date.today().isoformat()}\n"
-            f"- Resumo: {probe_summary.strip()}\n"
+            f"- Date: {date.today().isoformat()}\n"
+            f"- Summary: {probe_summary.strip()}\n"
         )
-        text = _replace_section(text, "Última sondagem", body)
+        text = _replace_section(text, "Last probe", body)
 
     path.write_text(text, encoding="utf-8")
-    return f"Atualizei {path}"
+    return f"Updated {path}"
 
 
 def project_drop_candidate(topic: str, cwd: str | Path | None = None) -> str:
     topic_disp = normalize_topic_display(topic) or topic.strip()
     if not topic_disp:
-        raise ValueError("topic vazio")
+        raise ValueError("empty topic")
     path = _existing_project_path(cwd)
     if not path.exists():
-        return f"Sem arquivo de projeto: {path}"
+        return f"No project file: {path}"
     text = path.read_text(encoding="utf-8")
-    section = _section(text, "Candidatos de estudo")
+    section = _section(text, "Study candidates")
     key = topic_key(topic_disp)
     lines: list[str] = []
     removed = False
@@ -523,12 +564,12 @@ def project_drop_candidate(topic: str, cwd: str | Path | None = None) -> str:
             continue
         lines.append(ln)
     if not removed:
-        return f"Candidato não encontrado: {topic_disp}"
+        return f"Candidate not found: {topic_disp}"
     kept = [ln for ln in lines if ln.strip() and not ln.strip().startswith("_")]
-    body = "\n".join(kept) + "\n" if kept else "_Vazio._\n"
-    text = _replace_section(text, "Candidatos de estudo", body)
+    body = "\n".join(kept) + "\n" if kept else "_Empty._\n"
+    text = _replace_section(text, "Study candidates", body)
     path.write_text(text, encoding="utf-8")
-    return f"Removi candidato do projeto: {topic_disp}"
+    return f"Removed project candidate: {topic_disp}"
 
 
 def truncate_for_inject(content: str, max_chars: int = 6000) -> str:

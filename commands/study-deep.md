@@ -1,16 +1,15 @@
-Delegue ao subagent `study-researcher` a criação de uma trilha de estudo
-aprofundada e curada.
+Delegate to the `study-researcher` subagent to create a deep, curated study track.
 
-- Tópico: use o que eu escrever após o comando. Se eu não especificar:
-  1. rode `python3 ~/.cursor/learning/cli.py queue-next`
-  2. se houver item aberto na fila, use esse tópico (diga em uma linha qual)
-  3. senão, pergunte em uma linha qual tópico
-- Nível: pegue do `LEARNING-PROFILE`. Se não houver, infira da conversa ou pergunte.
-- Se houver `LEARNING-PROJECT`, mencione stack/candidatos relevantes no prompt
-  do subagent (contexto, não substituem o tópico).
+- Topic: use what I write after the command. If I do not specify:
+  1. run `python3 ~/.cursor/learning/cli.py queue-next`
+  2. if there is an open queue item, use that topic (say which in one line)
+  3. otherwise, ask in one line which topic
+- Level: take from `LEARNING-PROFILE`. If missing, infer from the conversation or ask.
+- If there is a `LEARNING-PROJECT`, mention relevant stack/candidates in the
+  subagent prompt (context only; they do not replace the topic).
 
-Passe tópico + nível ao subagent e traga de volta só a trilha final (ponto de
-partida, trilha ordenada, sinais de avanço). Não refaça a pesquisa no chat.
+Pass topic + level to the subagent and return only the final track (starting
+point, ordered track, advancement signals). Do not redo the research in chat.
 
-Ao final, pergunte em uma linha se quero colocar o tópico na **fila** com
-`/study-log` (ou rode `want` se eu disser que sim).
+At the end, ask in one line whether I want the topic on the **queue** with
+`/study-log` (or run `want` if I say yes).

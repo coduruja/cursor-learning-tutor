@@ -1,42 +1,42 @@
-Sondagem ativa: descubra o que eu sei vs o que o projeto exige, e ajuste o perfil.
+Active probe: find what I know vs what this project needs, and adjust the profile.
 
-Sem pesquisar na web. Prefira a CLI estável.
+Do not search the web. Prefer the stable CLI.
 
-## Passos
-1. Leia o perfil global e o contexto do projeto:
+## Steps
+1. Read the global profile and project context:
    ```bash
    python3 ~/.cursor/learning/cli.py show
    python3 ~/.cursor/learning/cli.py project-show
    ```
-   Se não houver `LEARNING-PROJECT` / arquivo de projeto e o repo tiver stack
-   clara, sincronize 3–8 candidatos específicos (sem linguagens base):
+   If there is no `LEARNING-PROJECT` / project file and the repo has a clear
+   stack, sync 3–8 specific candidates (no base languages):
    ```bash
    python3 ~/.cursor/learning/cli.py project-sync --stack "A;B" --candidates "t1;t2;t3"
    ```
 
-2. Monte uma hipótese curta (não mostre como lista enorme):
-   - o que eu **provavelmente sei** (nível/foco + coberto)
-   - o que eu **deveria saber** neste projeto (candidatos + stack)
-   Priorize 5–8 tópicos no total.
+2. Build a short hypothesis (do not dump a huge list):
+   - what I **probably know** (level/focus + covered)
+   - what I **should know** for this project (candidates + stack)
+   Prioritize 5–8 topics total.
 
-3. Faça **3–5 perguntas curtas em um único bloco** (não uma por mensagem).
-   Perguntas práticas, não trivia. Aceite “não sei”.
+3. Ask **3–5 short questions in a single block** (not one per message).
+   Practical questions, not trivia. Accept “I don’t know”.
 
-4. Com as minhas respostas, ajuste:
-   - acertou com confiança →
+4. From my answers, adjust:
+   - answered confidently →
      `python3 ~/.cursor/learning/cli.py covered --topic "..." --level "..." --note "study-probe"`
-     e, se era candidato do projeto:
+     and, if it was a project candidate:
      `python3 ~/.cursor/learning/cli.py project-drop --topic "..."`
-   - errou / “não sei” →
-     `python3 ~/.cursor/learning/cli.py want --topic "..." --note "lacuna no study-probe"`
-   - parcial →
-     `python3 ~/.cursor/learning/cli.py want --topic "..." --note "reforço (study-probe)"`
+   - wrong / “I don’t know” →
+     `python3 ~/.cursor/learning/cli.py want --topic "..." --note "gap from study-probe"`
+   - partial →
+     `python3 ~/.cursor/learning/cli.py want --topic "..." --note "reinforce (study-probe)"`
 
-5. Atualize a sondagem do projeto:
+5. Update the project probe:
    ```bash
    python3 ~/.cursor/learning/cli.py project-sync --probe-summary "..."
    ```
 
-## Resposta final
-Em 2–3 linhas: o que foi para **coberto**, o que entrou na **fila**, e o
-próximo passo sugerido (`/study-deep` no primeiro item da fila, se houver).
+## Final reply
+In 2–3 lines: what went to **covered**, what entered the **queue**, and the
+suggested next step (`/study-deep` on the first queue item, if any).

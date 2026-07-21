@@ -1,68 +1,67 @@
 # Learning Tutor (Cursor Plugin)
 
-Tutor leve: calibra explicações ao seu nível, captura lacunas conceituais na
-fila, mantém stack/candidatos por projeto, e só aprofunda pesquisa quando você
-pede.
+A lightweight tutor: calibrates explanations to your level, captures conceptual
+gaps into a queue, keeps per-project stack/candidates, and only deepens research
+when you ask.
 
-## Uso rápido
+## Quick use
 
-| Ação | Como |
+| Action | How |
 |---|---|
-| Chat normal | Classifica intent; “o que é X?” → explica + `want` automático |
-| Registrar na mão | `/study-log` |
-| Raio-x / onboarding | `/study-plan` |
-| Sondagem (perguntas-teste) | `/study-probe` |
-| Trilha curada | `/study-deep <tópico>` (sem tópico → primeiro da fila) |
+| Normal chat | Classifies intent; “what is X?” → explain + automatic `want` |
+| Manual record | `/study-log` |
+| Snapshot / onboarding | `/study-plan` |
+| Probe (quiz) | `/study-probe` |
+| Curated track | `/study-deep <topic>` (no topic → first queue item) |
 
-Não precisa “ligar” o tutor: a rule vem com `alwaysApply: true`.
+You do not need to “turn on” the tutor: the rule uses `alwaysApply: true`.
 
-## O que fica onde
+## What lives where
 
 ### Global (`~/.cursor/learning/`)
 
-| Arquivo | Papel |
+| File | Role |
 |---|---|
-| `profile.md` | Meta, **fila de estudo** e **coberto** |
-| `cli.py` + `lib_profile.py` | CLI estável (instalada no `sessionStart`) |
+| `profile.md` | Meta, **study queue**, and **covered** |
+| `cli.py` + `lib_profile.py` | Stable CLI (installed on `sessionStart`) |
 
-### Por projeto (híbrido)
+### Per project (hybrid)
 
-| Arquivo | Papel |
+| File | Role |
 |---|---|
-| `.cursor/learning/project.md` | Dados do Learning Tutor: stack, **candidatos** locais e última sondagem |
+| `.cursor/learning/project.md` | Learning Tutor data: stack, local **candidates**, last probe |
 
-Candidatos do projeto só viram fila global via pergunta conceitual,
-`/study-probe`, ou pedido explícito.
-O cabeçalho identifica o arquivo como **dados**, não como rule ou instrução
-para outros agentes.
+Project candidates become global queue items only via a conceptual question,
+`/study-probe`, or an explicit request.
+The header marks the file as **data**, not a rule or instruction for other agents.
 
 ```bash
 python3 ~/.cursor/learning/cli.py show
-python3 ~/.cursor/learning/cli.py covered --topic "Closures" --level intermediário
-python3 ~/.cursor/learning/cli.py want --topic "Docker" --note "pro deploy"
+python3 ~/.cursor/learning/cli.py covered --topic "Closures" --level intermediate
+python3 ~/.cursor/learning/cli.py want --topic "Docker" --note "for deploy"
 python3 ~/.cursor/learning/cli.py project-show
 python3 ~/.cursor/learning/cli.py project-sync --stack "Next.js;Prisma" --candidates "App Router;Prisma migrations"
 ```
 
-## O que vem no plugin
+## What ships in the plugin
 
-| Componente | Papel |
+| Component | Role |
 |---|---|
-| `rules/tutor.mdc` | Intent (`concept_gap` / `repo_local` / `agent_task`) + auto-want + calibração |
-| `commands/study-log.md` | Registro explícito |
-| `commands/study-plan.md` | Raio-x ou onboarding se vazio |
-| `commands/study-probe.md` | Sondagem ativa → ajusta covered/want |
-| `commands/study-deep.md` | Dispara trilha via subagent |
-| `agents/study-researcher.md` | Pesquisa curada em contexto isolado |
-| `hooks/*` | Injeta perfil + projeto, instala CLI, captura marcadores backup |
+| `rules/tutor.mdc` | Intent (`concept_gap` / `repo_local` / `agent_task`) + auto-want + calibration |
+| `commands/study-log.md` | Explicit recording |
+| `commands/study-plan.md` | Snapshot or onboarding if empty |
+| `commands/study-probe.md` | Active probe → adjusts covered/want |
+| `commands/study-deep.md` | Starts a track via subagent |
+| `agents/study-researcher.md` | Curated research in an isolated context |
+| `hooks/*` | Injects profile + project, installs CLI, captures backup markers |
 
-## Instalação
+## Installation
 
 ### Marketplace / Plugins
-Instale **Learning Tutor** na seção User. Abra um **novo chat** depois — o
-`sessionStart` copia a CLI para `~/.cursor/learning/`.
+Install **Learning Tutor** under User. Open a **new chat** afterward — `sessionStart`
+copies the CLI to `~/.cursor/learning/`.
 
-### Cópia direta (sem marketplace)
+### Direct copy (no marketplace)
 ```bash
 mkdir -p ~/.cursor/rules ~/.cursor/agents ~/.cursor/commands ~/.cursor/hooks ~/.cursor/learning
 cp rules/tutor.mdc            ~/.cursor/rules/
@@ -72,27 +71,27 @@ cp hooks/lib_profile.py hooks/learning_cli.py hooks/capture_learning.py hooks/in
 cp hooks/learning_cli.py ~/.cursor/learning/cli.py
 cp hooks/lib_profile.py ~/.cursor/learning/lib_profile.py
 ```
-Aponte um `hooks.json` global para os scripts em `~/.cursor/hooks/`.
+Point a global `hooks.json` at the scripts under `~/.cursor/hooks/`.
 
-### Requisitos
-- `python3` no PATH (Windows: use `python` no `hooks.json` se preciso).
+### Requirements
+- `python3` on PATH (Windows: use `python` in `hooks.json` if needed).
 
-## Como o registro funciona
+## How recording works
 
-1. **CLI** (preferida): o agente roda `python3 ~/.cursor/learning/cli.py …`
-2. **Marcadores** (backup): `<!-- LEARNING-LOG … -->` / `<!-- LEARNING-WANT … -->`
-   lidos pelo hook `afterAgentResponse`
+1. **CLI** (preferred): the agent runs `python3 ~/.cursor/learning/cli.py …`
+2. **Markers** (backup): `<!-- LEARNING-LOG … -->` / `<!-- LEARNING-WANT … -->`
+   read by the `afterAgentResponse` hook
 
-Intent rápido:
-- “o que é PR / HTTP / Docker?” → fila (`want`) + feedback
-- “o que faz o módulo X?” → só código, sem log
-- “implemente Y” → executa; log só se ensinou conceito novo
+Quick intent map:
+- “what is PR / HTTP / Docker?” → queue (`want`) + feedback
+- “what does module X do?” → code only, no log
+- “implement Y” → execute; log only if a new concept was taught
 
-A CLI normaliza aliases (ex.: `pull request` ↔ `PR`) e ignora tópicos genéricos
-ou linguagens base sozinhas.
+The CLI normalizes aliases (e.g. `pull request` ↔ `PR`) and ignores generic
+topics or bare base languages.
 
 ## Caveats
-- Se a CLI ainda não existir, abra um novo chat (para o `sessionStart` rodar)
-  ou use a cópia direta acima.
-- Se `$CURSOR_PLUGIN_ROOT` falhar na sua versão do Cursor, use a cópia direta.
-- Hooks são scripts locais curtos — audite antes se quiser.
+- If the CLI does not exist yet, open a new chat (so `sessionStart` can run)
+  or use the direct copy above.
+- If `$CURSOR_PLUGIN_ROOT` fails on your Cursor version, use the direct copy.
+- Hooks are short local scripts — audit them if you want.

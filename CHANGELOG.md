@@ -1,32 +1,36 @@
 # Changelog
 
+## 2.2.0
+- Project copy, rules, commands, agents, CLI messages, and docs are English.
+- Canonical levels: `beginner` / `intermediate` / `advanced` (Portuguese aliases still accepted).
+- Profile/project section titles are English; legacy Portuguese headings are still read and rewritten on update.
+
 ## 2.1.1
-- Move a ficha local para `.cursor/learning/project.md`, em namespace próprio.
-- Cabeçalho identifica explicitamente a ficha como dados do Learning Tutor,
-  não como rule, prompt ou instrução.
-- CLI migra automaticamente o caminho legado `.cursor/learning-project.md`.
+- Move the local sheet to `.cursor/learning/project.md`, under its own namespace.
+- Header explicitly marks the sheet as Learning Tutor data, not a rule, prompt, or instruction.
+- CLI automatically migrates the legacy path `.cursor/learning-project.md`.
 
 ## 2.1.0
-- Classificação de intent na rule: `concept_gap` → auto-`want`; `repo_local` /
-  `agent_task` sem poluir a fila.
-- Modelo híbrido: `.cursor/learning-project.md` (stack + candidatos + sondagem)
-  + perfil global (fila/coberto).
+- Intent classification in the rule: `concept_gap` → auto-`want`; `repo_local` /
+  `agent_task` without polluting the queue.
+- Hybrid model: `.cursor/learning-project.md` (stack + candidates + probe)
+  + global profile (queue/covered).
 - CLI: `project-show`, `project-sync`, `project-drop`, `queue-next`;
-  normalização/dedupe de tópicos (aliases, anti-ruído).
-- `sessionStart` injeta `LEARNING-PROJECT` quando o arquivo existe.
-- Novo comando `/study-probe` (perguntas-teste → covered/want).
-- `/study-deep` sem tópico usa o primeiro item aberto da fila.
-- `/study-plan` inclui stack/candidatos do projeto.
+  topic normalization/dedupe (aliases, anti-noise).
+- `sessionStart` injects `LEARNING-PROJECT` when the file exists.
+- New `/study-probe` command (quiz → covered/want).
+- `/study-deep` without a topic uses the first open queue item.
+- `/study-plan` includes project stack/candidates.
 
 ## 2.0.0
-- Perfil com **Meta**, **Fila de estudo** e **Coberto**.
-- CLI estável em `~/.cursor/learning/cli.py` (instalada no `sessionStart`).
-- Novo comando `/study-log` para registro explícito.
-- `/study-plan` faz onboarding quando o perfil está vazio.
-- Feedback visível (`Salvei no perfil: …`) e marcadores `LEARNING-WANT`.
-- Hooks usam `lib_profile.py` compartilhada (menos frágil).
+- Profile with **Meta**, **Study queue**, and **Covered**.
+- Stable CLI at `~/.cursor/learning/cli.py` (installed on `sessionStart`).
+- New `/study-log` command for explicit recording.
+- `/study-plan` onboards when the profile is empty.
+- Visible feedback (`Saved to profile: …`) and `LEARNING-WANT` markers.
+- Hooks share `lib_profile.py` (less fragile).
 
 ## 1.0.0
-- Primeira versão. Empacota: rule de tutoria (alwaysApply), subagent
-  `study-researcher`, commands `/study-plan` e `/study-deep`, e hooks de
-  captura + injeção do perfil de aprendizado.
+- First release. Packages: tutor rule (`alwaysApply`), `study-researcher`
+  subagent, `/study-plan` and `/study-deep` commands, and profile
+  capture + injection hooks.
