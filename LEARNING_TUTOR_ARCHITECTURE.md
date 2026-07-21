@@ -469,8 +469,8 @@ Implementation:
 2. Change `study-probe` topic selection: pick exactly one transferable topic
    (user-supplied, `queue-next`, or an explicit choice). Do not select 5–10
    topics in a single probe.
-3. Ask multiple short practical questions about that one topic; wait for
-   answers; score with the rubric.
+3. Ask **5–10** short practical questions about that one topic (Decision 8);
+   wait for answers; score with the rubric.
 4. If at least 50% of that topic’s answers are correct → record `covered` for
    that topic with an evidence note. Otherwise keep/add `want` for the topic;
    do not write `covered`.
@@ -660,14 +660,26 @@ Implementation:
 5. Scenarios: deep track → mandatory one-topic probe; “I think I understand
    Docker” → probe, no immediate `covered`.
 
+#### Decision 8 — always 5–10 questions per one-topic probe
+
+There is no light-mode probe with fewer than five questions. Every one-topic
+`study-probe` asks **5 to 10** short practical questions about that topic,
+then waits for answers and applies the ≥50% bar (Decisions 1/1A).
+
+Implementation:
+
+1. `study-probe/SKILL.md`: replace any “multiple questions” / former multi-topic
+   “5–10 topics” language with “exactly one topic; 5–10 questions on that
+   topic.”
+2. `assessment-rubric.md`: state the 5–10 question range as required depth for
+   a valid probe of one topic.
+3. Scenarios: a probe that asks fewer than 5 questions is incomplete and must
+   not write `covered`.
+
 ### Open questions (Skills) — undecided, keep visible
 
 These are recorded for later decisions. Do not treat them as resolved:
 
-8. ~~**Probe light mode:** Support fewer than 5 questions for quick checks?~~
-   **Superseded by Decision 1A:** probes are one-topic; question count is about
-   depth on that topic, not how many topics to pack in. Exact question count
-   per topic can still be tuned later, but multi-topic “light exams” are out.
 9. **Marker fallback in Skills:** Should `study-log` / others emit markers when
    CLI is missing, or is “open a new chat” enough?
 10. **Force-log of repo-local topics via `study-log`:** Allow, warn, or block?
@@ -678,6 +690,7 @@ These are recorded for later decisions. Do not treat them as resolved:
 ~~5. Recording contract in Skills~~ → **Decision 4** (pointer, not copies)
 ~~6. Transferability copies~~ → **Decision 5** (boundary rule owns; probe applies it)
 ~~7. Deep → probe handoff~~ → **Decision 7** (always probe after deep; also on self-attestation)
+~~8. Probe light mode / question count~~ → **Decision 8** (always 5–10 questions per topic)
 
 ## What should move out of rules
 
@@ -813,8 +826,9 @@ mistakes observed while developing this repository.
 - Skill auto-invoke descriptions do not routinely collide (plan vs probe).
 - One evidence policy for `covered` is documented and reflected in
   `study-log`, `study-probe`, and `learning-recording` without contradiction.
-- Every probe assesses exactly one topic; the ≥50% threshold is scored for that
-  topic only; multi-topic aggregate probes are not used.
+- Every probe assesses exactly one topic with **5–10** questions; the ≥50%
+  threshold is scored for that topic only; multi-topic aggregate probes are
+  not used.
 
 ## Recommendation
 
@@ -839,6 +853,7 @@ keep only flow-specific commands. Decision 5 makes
 `project-learning-boundary` the owner of the transferability test; the probe
 rubric applies that rule instead of redefining it. Decision 7 requires a
 one-topic `study-probe` after every `study-deep` track and on self-attestation
-phrases (“I think I understand”, “finished studying”, …). Remaining open Skill
+phrases (“I think I understand”, “finished studying”, …). Decision 8 locks
+every one-topic probe to 5–10 questions (no light mode). Remaining open Skill
 questions still need ownership decisions before code changes for step 3/4.
 Agents/hooks inspection is still deferred.
