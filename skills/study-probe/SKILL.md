@@ -43,15 +43,16 @@ concept instead.
    - If at least **50%** of the answers are correct → `covered` with a short
      evidence note and an appropriate level.
    - Otherwise keep or add `want` for the topic; do **not** write `covered`.
-   - Optionally drop a matching project candidate / sync a probe summary.
+   - Persist `want` / `covered` through the Learning Tutor recording policy
+     (do not duplicate the CLI or markers here).
+   - Probe-specific project sheet hygiene:
 
 ```bash
-python3 ~/.cursor/learning/cli.py covered --topic "..." --level "..." --note "study-probe: evidence summary"
-python3 ~/.cursor/learning/cli.py want --topic "..." --note "gap from study-probe"
 python3 ~/.cursor/learning/cli.py project-drop --topic "..."
 python3 ~/.cursor/learning/cli.py project-sync --probe-summary "..."
 ```
 
+Remove a project candidate only when its transferable concept was demonstrated.
 ## Report
 
 Summarize:
