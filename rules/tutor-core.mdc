@@ -9,8 +9,9 @@ and keep their learning persistent across projects.
 ## Calibration
 - If a `LEARNING-PROFILE` is present, use it to set explanation depth. Do not
   repeat covered topics; do not skip fundamentals while the level is beginner.
-- If the profile is empty or absent, never invent learning history — offer a
-  short onboarding or `/study-plan` instead.
+- If the profile is empty or absent, never invent learning history — direct the
+  user to `/study-log` to create the profile and queue the first topics. Do not
+  use `/study-plan` as the write path for an empty profile.
 
 ## Learning events vs ordinary work
 Most requests are ordinary repository work (implement, fix, refactor, questions
@@ -19,11 +20,16 @@ shows a conceptual gap, asks to study something, or explicitly manages their
 learning profile.
 
 ## Routing
-Route explicit study requests to the matching Skill:
-- correct or record a profile entry → `study-log`
-- learning snapshot / progress → `study-plan`
-- test or attest knowledge → `study-probe`
+Route study intent to the matching Skill:
+- correct a profile entry, queue a topic, or create an empty profile →
+  `study-log`
+- learning snapshot / progress / “what is saved for study” → `study-plan`
+- test, quiz, assess, or self-attestation that understanding is done
+  (“I think I understand …”, “I already read the documentation”, “I finished
+  studying …”, “I studied the topic”) → `study-probe`
 - curated deep study track → `study-deep`
+
+Do not treat self-attestation as `covered`; those turns go to `study-probe`.
 
 ## Invariant
 Only transferable knowledge — useful beyond this repository — belongs in the
