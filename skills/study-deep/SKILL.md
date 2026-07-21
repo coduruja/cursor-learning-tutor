@@ -38,5 +38,12 @@ Return only the subagent's final track. Do not duplicate its research.
 
 ## Finish
 
-If the topic is not already queued, ask in one line whether to add it. Use the
-stable CLI `want` operation when the user agrees.
+Finishing a curated track is **not** evidence of understanding and must **not**
+write `covered`.
+
+1. If the topic is not already queued, ask in one line whether to add it. When
+   the user agrees, persist `want` through the Learning Tutor recording policy
+   (do not duplicate the CLI or markers here).
+2. Always continue into a one-topic `study-probe` for the same track topic
+   (ask which topic only if ambiguous). Do not merely offer the probe as an
+   optional suggestion — assessment is the next step.
