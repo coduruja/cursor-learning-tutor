@@ -8,7 +8,8 @@ project-discovery, and workflow policy into every Agent request.
 This document covers the **runtime architecture of Learning Tutor**: how Rules
 and Skills divide responsibility, when each loads, and how to avoid duplicated
 or conflicting policy. It began as a rules-focused proposal and now also
-records the Skills ownership analysis needed to finish the refactor.
+records Skills ownership analysis, per-Skill inspection findings, and open
+integration questions that still need decisions.
 
 ## Sources reviewed
 
@@ -259,6 +260,210 @@ The noisiest remaining overlap is the **recording CLI** repeated across
 `learning-recording` and Skills. Boundary wording in plan/probe is lighter and
 can stay as a short reminder.
 
+## Skills audit (inspection of `skills/` only)
+
+This section inspects the four shipped Skills and the probe rubric as they
+exist in the repository. It does **not** replace the rules analysis above.
+Agents, hooks, and CLI internals were out of scope for this pass (except where
+a Skill already names them).
+
+### Inventory
+
+| Path | Lines (approx.) | Auto-invoke | Progressive disclosure |
+|---|---|---|---|
+| `skills/study-log/SKILL.md` | ~35 | No (`disable-model-invocation: true`) | None |
+| `skills/study-plan/SKILL.md` | ~63 | Yes (description match) | None |
+| `skills/study-probe/SKILL.md` | ~59 | Yes | `references/assessment-rubric.md` |
+| `skills/study-deep/SKILL.md` | ~43 | Yes | None (delegates to subagent) |
+
+### `study-log` — findings
+
+**Role as written:** explicit manual write path for corrections, overrides, and
+deliberate profile updates.
+
+**What works well**
+
+- Explicit-only invocation matches a dangerous write surface (user must ask).
+- Clear branch: learned → `covered`, study later → `want`, empty invoke → ask.
+- Empty-profile path runs `init` then asks for a first topic.
+- Refuses web search; points at `sessionStart` if CLI is missing.
+- Short confirmation reply.
+
+**Problems / risks**
+
+- Restates the full `covered` / `want` / `init` CLI block. That duplicates the
+  persistence contract that `learning-recording.mdc` is meant to own (for
+  `want`/`covered`; `init` is intentionally skill-side today).
+- **Evidence tension (open):** “User describes something they learned →
+  `covered`” allows attesting mastery without a probe or teach-back rubric.
+  That conflicts with the direction of `learning-recording` (“never infer
+  `covered` merely because a concept was explained”) and with `study-probe`’s
+  evidence model. Whether deliberate `/study-log` is an intentional escape
+  hatch is **not decided** yet (see open questions; also migration step 4).
+- No marker fallback if CLI is missing (recording rule has markers; this Skill
+  only says open a new chat).
+- No transferability check — the user can force-log a repo-local symbol into
+  the global profile. That may be acceptable for an explicit override, but it
+  is undocumented as such.
+- Empty-profile onboarding overlaps `study-plan` (both can `init` + first
+  topics). Ownership of onboarding is **not decided**.
+
+### `study-plan` — findings
+
+**Role as written:** passive snapshot of learning state; may sync a missing
+project sheet; onboards when the profile is empty.
+
+**What works well**
+
+- Explicitly passive: do not test, do not search the web — clear vs probe.
+- Loads global + project state (`show` / `project-show`) and prefers injected
+  `LEARNING-PROFILE` / `LEARNING-PROJECT` when present.
+- Labels project context as local; warns against promoting symbols/paths into
+  the global plan.
+- Ends by offering `/study-probe` or `/study-deep` — good handoff.
+- Now owns missing-sheet `project-sync` (moved out of the old always-on rule).
+
+**Problems / risks**
+
+- Restates a shortened transferability / anti-promotion policy that also lives
+  in `project-learning-boundary.mdc` and again in the probe rubric.
+- “Gaps” in the snapshot can surface transferable concepts that are neither
+  queued nor covered. The Skill does **not** say whether to auto-`want` those
+  gaps. Interaction with `concept-gap-capture` during a plan turn is unclear
+  (**open**).
+- Onboarding overlap with `study-log` (see above).
+- Auto-invoke description includes phrases like “what they know” / “what to
+  learn next”, which can collide with probe intent (“verify what they know”) —
+  **open** whether descriptions need sharper disambiguation.
+- `project-sync` for stack/candidates is here; probe uses `project-sync` only
+  for `--probe-summary`. That split is reasonable but not spelled out as an
+  ownership contract anywhere except this document.
+
+### `study-probe` — findings
+
+**Role as written:** active assessment with evidence; updates covered/queue from
+scored answers; uses an on-demand rubric.
+
+**What works well**
+
+- Strongest owner of “evidence = understanding” among the Skills.
+- Forces reading `assessment-rubric.md` before questions/scoring.
+- Topic selection prefers queue, focus, then generalized project candidates.
+- Explicitly waits for answers before any profile write.
+- Distinguishes global vs project-local in the final report.
+- Uses `project-drop` / `project-sync --probe-summary` for local sheet hygiene.
+
+**Problems / risks**
+
+- Embeds a full CLI persistence block (`covered`, `want`, `project-drop`,
+  `project-sync`). Overlaps `learning-recording` for `want`/`covered`; the
+  project-* commands are probe-specific and probably should stay here.
+- Repeats transferability guidance already present in the boundary rule and
+  again (more fully) in the rubric.
+- Does not mention coordinating with `learning-recording` or `concept-gap-
+  capture` if those rules also load during a probe session (**open**
+  integration behavior).
+- Choosing 5–10 topics every run may be heavy for a short “quick check”
+  request — no light mode is defined (**open**, product decision).
+
+### `study-probe/references/assessment-rubric.md` — findings
+
+**Role as written:** question design, transferability gate, scoring bands
+(covered / partial / gap), evidence-note quality.
+
+**What works well**
+
+- Progressive disclosure: detail loads only when probe needs it.
+- Clear anti-patterns (definition trivia, repo identifiers, yes/no, exposure ≠
+  proof).
+- Scoring bands map cleanly to `covered` vs queue reinforcement.
+- Level guidance for `covered` (beginner / intermediate / advanced).
+
+**Problems / risks**
+
+- The transferability gate text is nearly a second copy of
+  `project-learning-boundary.mdc`. **Open:** keep a short reminder in the
+  rubric (probe-local examples are useful) vs. point at the rule and keep only
+  probe-specific examples/scoring here.
+- This file is the de facto evidence policy for `covered`, but `study-log` and
+  the historical “taught in chat” path are not bound to it yet (step 4).
+
+### `study-deep` — findings
+
+**Role as written:** resolve topic/level, delegate curated research to
+`study-researcher`, return the track, optionally queue the topic.
+
+**What works well**
+
+- Keeps heavy research out of the main chat via subagent delegation.
+- Falls back to `queue-next` when no topic is given; asks if queue empty.
+- Uses project stack/candidates as context only, not as the selected topic.
+- Finish step asks before `want` — does not silently mutate the queue.
+- Persistence mention is light (“stable CLI `want`”) rather than a full catalog.
+
+**Problems / risks**
+
+- Does not point at `learning-recording` for the write contract (markers,
+  feedback line, CLI-missing behavior).
+- After delivering a track, does not offer `/study-probe` to attest learning —
+  integration with evidence policy is missing (**open** whether deep should
+  hand off to probe).
+- Does not update `covered` (correct for a research Skill), but nothing in the
+  Skill states that completion of a track is **not** evidence — easy for a
+  model to drift if recording rules are soft.
+- Depends on `agents/study-researcher.md` for quality; that agent was **not**
+  inspected in this pass (deferred).
+
+### Cross-skill integration map
+
+How the Skills are intended to chain (as written today):
+
+```text
+concept_gap (rule) ──want──► queue
+                │
+                ▼
+         study-plan ──offers──► study-probe ──covered/want──► profile
+                │                      ▲
+                └──offers──► study-deep ──optional want──► queue
+                                   │
+                                   └──(? open)──► study-probe
+
+study-log ── explicit covered/want/init ──► profile
+             (bypass / override path; evidence rules undecided)
+```
+
+Shared dependencies every Skill assumes:
+
+- Stable CLI at `~/.cursor/learning/cli.py` (installed by `sessionStart`)
+- Optional injected `LEARNING-PROFILE` / `LEARNING-PROJECT`
+- Global profile for queue/covered; project sheet for local context only
+
+### Open questions (Skills) — undecided, keep visible
+
+These are recorded for later decisions. Do not treat them as resolved:
+
+1. **Evidence policy for `covered`:** Is `/study-log` “I learned X” an intentional
+   override of the probe rubric, or should log require the same evidence bar /
+   an explicit “force covered” confirmation?
+2. **Onboarding owner:** Empty profile → `study-plan`, `study-log`, or either
+   with identical steps?
+3. **Auto-invoke collision:** Tighten `study-plan` vs `study-probe`
+   descriptions so “what I know” does not ambiguously trigger both?
+4. **Plan gaps → queue:** May `study-plan` write `want` for listed gaps, or only
+   recommend `/study-log` / wait for `concept-gap-capture`?
+5. **Recording contract in Skills:** Replace duplicated CLI blocks with “follow
+   `learning-recording`” plus skill-specific extras (`init`, `project-drop`,
+   probe-summary), or keep CLI copies for Skills that must work even when the
+   intelligent rule does not load?
+6. **Transferability copies:** One canonical rule + short reminders, or allow
+   the rubric to keep a full gate because probe examples are valuable there?
+7. **Deep → probe handoff:** Should `study-deep` always offer a probe after the
+   track?
+8. **Probe light mode:** Support fewer than 5 questions for quick checks?
+9. **Marker fallback in Skills:** Should `study-log` / others emit markers when
+   CLI is missing, or is “open a new chat” enough?
+10. **Force-log of repo-local topics via `study-log`:** Allow, warn, or block?
+
 ## What should move out of rules
 
 | Current content | Better owner | Reason |
@@ -334,8 +539,10 @@ mistakes observed while developing this repository.
 1. ~~Extract the minimal always-on `tutor-core.mdc`.~~ **Done**
 2. ~~Add the three intelligent runtime rules with specific descriptions.~~ **Done**
 3. Remove duplicated workflows from runtime rules; keep them in Skills.
-   (Ownership pass using the overlap map above — decide per row, then edit.)
+   (Ownership pass using the overlap map and the Skills audit open questions —
+   decide per item, then edit; leave undecided items listed in the doc.)
 4. Define one evidence policy for `covered` before changing recording behavior.
+   (Blocks on Skills open question 1: `study-log` override vs probe bar.)
 5. Add automated checks for:
    - valid `.mdc` frontmatter
    - at most one small `alwaysApply: true` runtime rule
@@ -346,6 +553,8 @@ mistakes observed while developing this repository.
 
 ## Scenario matrix
 
+### Rules-focused scenarios
+
 | Prompt | Expected rules | Expected result |
 |---|---|---|
 | “Fix this failing test” | core only | No learning write |
@@ -354,6 +563,18 @@ mistakes observed while developing this repository.
 | “Test whether I understand Cursor rules” | core; `study-probe` Skill | Evidence-based assessment |
 | “Build a deep Docker study track” | core; `study-deep` Skill | Research delegated to subagent |
 | “Add this topic to my queue” | core + recording | Explicit `want` |
+
+### Skills-focused scenarios
+
+| Prompt | Expected Skill | Expected result | Open risk |
+|---|---|---|---|
+| `/study-log` + “I learned Docker” | `study-log` | Profile `covered` write | Evidence bar vs probe (Q1) |
+| “What is saved for study?” | `study-plan` | Snapshot; no quiz | Description collision with probe (Q3) |
+| `/study-plan` in repo without project sheet | `study-plan` | Optional `project-sync` once | — |
+| `/study-probe` | `study-probe` + rubric | Questions → wait → score → write | CLI overlap with recording rule (Q5) |
+| `/study-deep` with empty topic | `study-deep` | `queue-next` or ask; subagent track | No probe handoff (Q7) |
+| Empty profile + `/study-plan` | `study-plan` | Onboarding `init` + wants | Overlap with `study-log` onboarding (Q2) |
+| Empty profile + `/study-log` alone | `study-log` | Onboarding `init` + ask topic | Same as above (Q2) |
 
 ## Success criteria
 
@@ -366,6 +587,11 @@ mistakes observed while developing this repository.
 - Rule behavior has no contradiction about what qualifies as `covered`.
 - Each overlapping concern has a single canonical owner (rule or skill), with
   at most a short pointer elsewhere.
+- Open Skill questions in this document are either decided with an explicit
+  owner change, or left listed until a decision is made.
+- Skill auto-invoke descriptions do not routinely collide (plan vs probe).
+- One evidence policy for `covered` is documented and reflected in
+  `study-log`, `study-probe`, and `learning-recording` without contradiction.
 
 ## Recommendation
 
@@ -379,5 +605,7 @@ while still removing the current monolithic always-on context cost.
 
 **Status note:** after extracting `tutor-core`, the three intelligent rules were
 added together (step 2) so capture, recording, and project boundary could be
-validated as one coherent set. The next focus is step 3 — the Skill/rule
-ownership pass — then a single evidence policy for `covered` (step 4).
+validated as one coherent set. A Skills-only inspection pass is now recorded in
+this document (per-Skill findings + open questions). The next focus remains
+step 3 — ownership decisions on those open questions — then a single evidence
+policy for `covered` (step 4). Agents/hooks inspection is still deferred.
