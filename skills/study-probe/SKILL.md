@@ -5,8 +5,9 @@ description: Tests understanding of one named or selected topic by asking practi
 
 # Study Probe
 
-Assess knowledge; do not infer mastery merely because a topic appeared in chat.
-Read [references/assessment-rubric.md](references/assessment-rubric.md) before
+Assess knowledge; do not infer mastery from exposure, self-report, or finishing
+a study track. Read
+[references/assessment-rubric.md](references/assessment-rubric.md) before
 writing questions or scoring answers.
 
 ## Load state
@@ -18,23 +19,31 @@ python3 ~/.cursor/learning/cli.py show
 python3 ~/.cursor/learning/cli.py project-show
 ```
 
-## Select topics
+## Select one topic
 
-Choose 5-10 transferable concepts from:
+Pick **exactly one** transferable topic for this probe:
 
-1. Open global queue items
-2. Current global focus
-3. Project candidates generalized beyond repo-specific names
+1. The topic the user named, or
+2. The first open global queue item (`queue-next`), or
+3. An explicit choice among a short list (queue / focus / a generalized project
+   candidate)
 
-Never test trivia about local symbols, paths, environment variables, or class
-names. If a local detail reveals a broader concept, test the broader concept.
+Never run a multi-topic exam. Never test trivia about local symbols, paths,
+environment variables, or class names. If a local detail is the starting point,
+apply the project-learning-boundary transferability test and probe the broader
+concept instead.
 
 ## Run the probe
 
-1. Ask 5-10 short practical questions in one block.
+1. Ask **5 to 10** short practical questions about that one topic, in one block.
+   Fewer than 5 questions is an incomplete probe and must not write `covered`.
 2. Wait for the user's answers before writing any profile state.
 3. Score each answer with the assessment rubric.
-4. Persist results:
+4. Persist results for **this topic only**:
+   - If at least **50%** of the answers are correct → `covered` with a short
+     evidence note and an appropriate level.
+   - Otherwise keep or add `want` for the topic; do **not** write `covered`.
+   - Optionally drop a matching project candidate / sync a probe summary.
 
 ```bash
 python3 ~/.cursor/learning/cli.py covered --topic "..." --level "..." --note "study-probe: evidence summary"
@@ -43,16 +52,14 @@ python3 ~/.cursor/learning/cli.py project-drop --topic "..."
 python3 ~/.cursor/learning/cli.py project-sync --probe-summary "..."
 ```
 
-Only record `covered` when the answer provides positive evidence. A partial or
-incorrect answer remains in or enters the queue. Remove a project candidate only
-when its transferable concept was demonstrated.
-
 ## Report
 
 Summarize:
 
-- Evidence accepted as covered
-- Gaps added to the queue
+- Topic probed
+- Evidence accepted as covered (or why not)
+- Queue updates
 - One recommended next action
 
-Keep the report concise and distinguish global learning from project-local context.
+Keep the report concise and distinguish global learning from project-local
+context.
