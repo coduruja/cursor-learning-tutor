@@ -300,8 +300,8 @@ deliberate profile updates.
   hatch for attesting knowledge: it must route the user to a one-topic
   `study-probe`, and that topic becomes `covered` only with at least 50%
   correct on its probe questions.
-- No marker fallback if CLI is missing (recording rule has markers; this Skill
-  only says open a new chat).
+- No marker fallback if CLI is missing — **resolved by Decision 9:** emit a
+  `LEARNING-WANT` marker when the CLI is unavailable (no covered marker).
 - No transferability check — the user can force-log a repo-local symbol into
   the global profile. That may be acceptable for an explicit override, but it
   is undocumented as such.
@@ -676,12 +676,42 @@ Implementation:
 3. Scenarios: a probe that asks fewer than 5 questions is incomplete and must
    not write `covered`.
 
+#### Decision 9 — marker fallback when the CLI is missing
+
+When `~/.cursor/learning/cli.py` is unavailable, Skills do not silently drop the
+write. They emit a marker on an isolated final line so the `afterAgentResponse`
+hook can persist it later:
+
+```
+<!-- LEARNING-WANT topic="TOPIC" note="context" -->
+```
+
+Constraints from earlier decisions:
+
+- Markers may only create `want`. There is **no** `covered` marker, because
+  `covered` requires one-topic probe evidence (Decisions 1/1A); the historical
+  `LEARNING-LOG` (covered) marker is retired.
+- After emitting a marker, tell the user it was queued via fallback and that a
+  new chat lets `sessionStart` install the CLI for direct writes.
+- If both the CLI and the hook are unavailable, the marker is inert; that is an
+  accepted worst case, not a silent success — do not claim it was saved.
+
+Implementation:
+
+1. `learning-recording.mdc`: keep the marker fallback but remove the
+   `LEARNING-LOG` (covered) marker; document `LEARNING-WANT` as the only marker.
+2. `study-log` and other write paths: when the CLI is missing, emit a
+   `LEARNING-WANT` marker instead of only saying “open a new chat.”
+3. Feedback wording distinguishes a direct CLI write (`Saved to queue: …`) from
+   a fallback (`Queued via fallback (marker); open a new chat to enable direct
+   writes`).
+4. Scenarios: CLI missing + “study X later” → `LEARNING-WANT` marker emitted;
+   no `covered` marker is ever produced.
+
 ### Open questions (Skills) — undecided, keep visible
 
 These are recorded for later decisions. Do not treat them as resolved:
 
-9. **Marker fallback in Skills:** Should `study-log` / others emit markers when
-   CLI is missing, or is “open a new chat” enough?
 10. **Force-log of repo-local topics via `study-log`:** Allow, warn, or block?
 
 ~~2. Onboarding owner~~ → **Decision 2**
@@ -691,6 +721,7 @@ These are recorded for later decisions. Do not treat them as resolved:
 ~~6. Transferability copies~~ → **Decision 5** (boundary rule owns; probe applies it)
 ~~7. Deep → probe handoff~~ → **Decision 7** (always probe after deep; also on self-attestation)
 ~~8. Probe light mode / question count~~ → **Decision 8** (always 5–10 questions per topic)
+~~9. Marker fallback in Skills~~ → **Decision 9** (emit `LEARNING-WANT` marker; no covered marker)
 
 ## What should move out of rules
 
@@ -854,6 +885,7 @@ keep only flow-specific commands. Decision 5 makes
 rubric applies that rule instead of redefining it. Decision 7 requires a
 one-topic `study-probe` after every `study-deep` track and on self-attestation
 phrases (“I think I understand”, “finished studying”, …). Decision 8 locks
-every one-topic probe to 5–10 questions (no light mode). Remaining open Skill
-questions still need ownership decisions before code changes for step 3/4.
-Agents/hooks inspection is still deferred.
+every one-topic probe to 5–10 questions (no light mode). Decision 9 keeps a
+marker fallback (`LEARNING-WANT` only) when the CLI is missing. The only
+remaining open Skill question is Q10 (force-log of repo-local topics). Agents/
+hooks inspection is still deferred.
