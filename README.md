@@ -83,13 +83,15 @@ Point a global `hooks.json` at the scripts under `~/.cursor/hooks/`.
 ## How recording works
 
 1. **CLI** (preferred): the agent runs `python3 ~/.cursor/learning/cli.py …`
-2. **Markers** (backup): `<!-- LEARNING-LOG … -->` / `<!-- LEARNING-WANT … -->`
-   read by the `afterAgentResponse` hook
+2. **Markers** (backup for queue only): `<!-- LEARNING-WANT … -->` read by the
+   `afterAgentResponse` hook when the CLI is missing. There is no covered
+   marker — `covered` requires one-topic probe evidence via the CLI.
 
 Quick intent map:
 - “what is PR / HTTP / Docker?” → queue (`want`) + feedback
 - “what does module X do?” → code only, no log
-- “implement Y” → execute; log only if a new concept was taught
+- “I learned X” / “I understand X” → one-topic `/study-probe` (not auto-`covered`)
+- “implement Y” → execute; do not infer `covered` from teaching alone
 
 The CLI normalizes aliases (e.g. `pull request` ↔ `PR`) and ignores generic
 topics or bare base languages.

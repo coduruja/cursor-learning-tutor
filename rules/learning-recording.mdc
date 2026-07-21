@@ -1,0 +1,48 @@
+---
+description: Persist Learning Tutor queue or covered updates when a learning event, explicit study-log request, or successful assessment requires a profile write.
+alwaysApply: false
+---
+
+When a learning event requires a profile write, use this persistence contract.
+Prefer the stable CLI; do not edit `profile.md` directly unless the CLI is
+unavailable.
+
+## CLI (preferred)
+```bash
+python3 ~/.cursor/learning/cli.py want --topic "TOPIC" --note "why"
+python3 ~/.cursor/learning/cli.py covered --topic "TOPIC" --level "beginner|intermediate|advanced" --note "probe evidence"
+```
+
+## Marker fallback (CLI missing)
+If `~/.cursor/learning/cli.py` is missing, do not silently drop a queue write.
+Emit a `want` marker as an isolated final line so `afterAgentResponse` can
+persist it:
+
+```
+<!-- LEARNING-WANT topic="TOPIC" note="context" -->
+```
+
+There is **no** `covered` marker. The historical `LEARNING-LOG` marker is
+retired — `covered` requires one-topic probe evidence via the CLI.
+
+After a marker, say it was queued via fallback and that a new chat lets
+`sessionStart` install the CLI for direct writes. If both the CLI and the hook
+are unavailable, the marker is inert; do not claim it was saved.
+
+## When to write
+- `concept_gap` or “add to queue / study later” → `want`
+- Explicit queue request (`/study-log`, “study later”) → `want`
+- Successful one-topic `study-probe` (≥50% correct on that topic’s answers) →
+  `covered` with a short evidence note; gaps stay or become `want`
+
+## When not to write
+- `repo_local` answers, purely operational replies, or plugin meta
+- Do **not** infer `covered` from self-report, teaching exposure, finishing a
+  study track, or any non-probe path
+- Do **not** write `covered` without one-topic probe evidence
+
+## Required feedback
+- Direct CLI success: one line `Saved to profile: …` or `Saved to queue: …`
+- Marker fallback: `Queued via fallback (marker); open a new chat to enable
+  direct writes`
+- If the CLI replies “Already in queue” / “Ignored”, do not insist.
