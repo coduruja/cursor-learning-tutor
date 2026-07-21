@@ -1,6 +1,6 @@
 ---
 name: study-probe
-description: Actively assesses understanding with practical questions, scores evidence, and updates the Learning Tutor profile. Use when the user asks to test their knowledge, verify what they know, calibrate their level, or invokes /study-probe.
+description: Tests understanding of one named or selected topic by asking practical questions, scoring the answers, and updating the profile from evidence. Use when the user asks to be tested, quizzed, or assessed; claims they understand, finished studying, or read the material on a topic; or after a study-deep track for that topic. Do not use for passive profile summaries or study-plan requests.
 ---
 
 # Study Probe
