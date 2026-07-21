@@ -128,9 +128,13 @@ def check_hooks_json(plugin: dict) -> None:
     missing = sorted(required_scripts - present)
     if missing:
         fail(f"hooks/ missing scripts: {', '.join(missing)}")
+    learning_pkg = ROOT / "hooks" / "learning" / "__init__.py"
+    if not learning_pkg.is_file():
+        fail("missing hooks/learning package")
     print(
         "OK hooks.json "
-        f"(events: {', '.join(expected_events)}; scripts: {', '.join(sorted(required_scripts))})"
+        f"(events: {', '.join(expected_events)}; scripts: {', '.join(sorted(required_scripts))}; "
+        "learning/ package)"
     )
 
 
@@ -167,6 +171,14 @@ def install_cli() -> None:
         target = dest / ("cli.py" if name == "learning_cli.py" else name)
         shutil.copy2(src, target)
         print(f"OK installed {target}")
+    package_src = ROOT / "hooks" / "learning"
+    if not package_src.is_dir():
+        fail("missing hooks/learning package")
+    package_dest = dest / "learning"
+    if package_dest.exists():
+        shutil.rmtree(package_dest)
+    shutil.copytree(package_src, package_dest)
+    print(f"OK installed {package_dest}")
 
 
 def main() -> int:

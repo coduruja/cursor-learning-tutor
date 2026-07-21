@@ -44,13 +44,12 @@ def load_module(path: Path, name: str):
 
 def load_lib_with_home(home: Path):
     """Load lib_profile with LEARNING paths under a fake HOME."""
+    for name in list(sys.modules):
+        if name == "learning" or name.startswith("learning."):
+            del sys.modules[name]
     with mock.patch.dict(os.environ, {"HOME": str(home)}):
-        lib = load_module(HOOKS / "lib_profile.py", f"lib_profile_{home.name}")
-        learning = home / ".cursor" / "learning"
-        lib.LEARNING_DIR = learning
-        lib.PROFILE_PATH = learning / "profile.md"
-        lib.CLI_PATH = learning / "cli.py"
-        lib.LIB_PATH = learning / "lib_profile.py"
+        lib = load_module(HOOKS / "lib_profile.py", f"lib_profile_{home.name}_{id(home)}")
+        lib.rebind_home(home)
         return lib
 
 
@@ -355,6 +354,28 @@ class LibProfileTempHomeTests(unittest.TestCase):
             out = lib.truncate_for_inject(long, max_chars=1000)
             self.assertLess(len(out), len(long))
             self.assertIn("...", out)
+
+    def test_install_cli_copies_learning_package(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            home = Path(tmp) / "home"
+            home.mkdir()
+            lib = load_lib_with_home(home)
+            lib.install_cli(HOOKS)
+            learning = home / ".cursor" / "learning"
+            self.assertTrue((learning / "cli.py").is_file())
+            self.assertTrue((learning / "lib_profile.py").is_file())
+            self.assertTrue((learning / "learning" / "__init__.py").is_file())
+            self.assertTrue((learning / "learning" / "profile.py").is_file())
+            result = subprocess.run(
+                [sys.executable, str(learning / "cli.py"), "want", "--topic", "Docker"],
+                env={**os.environ, "HOME": str(home), "PYTHONPATH": ""},
+                capture_output=True,
+                text=True,
+                check=False,
+            )
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertIn("Saved to profile (queue)", result.stdout)
+            self.assertIn("Docker", (learning / "profile.md").read_text(encoding="utf-8"))
 
 
 class AgentLinkTests(unittest.TestCase):

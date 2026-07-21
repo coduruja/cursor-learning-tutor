@@ -138,7 +138,9 @@ Shared helpers in `lib_profile.py`:
 | `~/.cursor/learning/profile.md` | Global profile (meta, queue, covered) |
 | `<project>/.cursor/learning/project.md` | Per-repo sheet (stack, candidates, last probe) |
 
-Install source (plugin tree): `hooks/learning_cli.py` + `hooks/lib_profile.py`.
+Install source (plugin tree): `hooks/learning_cli.py`, `hooks/lib_profile.py`
+(shim), and `hooks/learning/` (implementation package). `install_cli` copies all
+three into `~/.cursor/learning/`.
 
 ### Commands (public argv contract)
 
@@ -250,3 +252,10 @@ Adapters are hardened via `hooks/hook_io.py` without splitting `lib_profile.py`.
 Empty `LEARNING-WANT` topics are skipped (stderr) so later valid markers still
 persist. Project discovery helpers live in `lib_profile` (`resolve_project_root`,
 `find_project_sheet`).
+
+## Phase D notes
+
+Implementation lives in `hooks/learning/` (`paths`, `topics`, `sections`,
+`context`, `profile`, `project`, `install`). `hooks/lib_profile.py` is a
+compatibility shim. Stable install copies the shim + `learning/` package beside
+`cli.py`.

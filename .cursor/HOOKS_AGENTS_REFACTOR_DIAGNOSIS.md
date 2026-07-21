@@ -62,19 +62,14 @@ framework.
 
 ## Diagnosis
 
-### 1. `lib_profile.py` has too many reasons to change
+### 1. `lib_profile.py` has too many reasons to change — mitigated in Phase D
 
-`lib_profile.py` contains global profile storage, queue and covered operations,
-topic normalization, anti-noise behavior, aliases, legacy migration, project
-sheet operations, injected-context truncation, and stable CLI installation.
+Implementation is split under `hooks/learning/` (`paths`, `topics`, `sections`,
+`context`, `profile`, `project`, `install`). `lib_profile.py` remains a thin
+compatibility shim for Hooks and the installed CLI.
 
-It is imported by both Hooks and the CLI, so a change in any one responsibility
-can affect all three runtime entry points.
-
-**Root cause:** features were added around a shared utility file without
-introducing module boundaries.
-
-**Risk:** regressions have a wide blast radius and are hard to isolate in tests.
+**Remaining risk:** the shim + package must stay in sync during `install_cli`
+copies; covered by the install regression test.
 
 ### 2. Library loading is duplicated
 
@@ -264,19 +259,22 @@ Deliverables:
 
 Exit: malformed inputs and runtime failures are observable and isolated.
 
-### Phase D — Extract `lib_profile.py` incrementally
+### Phase D — Extract `lib_profile.py` incrementally — **done**
 
-Recommended extraction order:
+Deliverable: `hooks/learning/` package with shim `hooks/lib_profile.py`.
 
-1. paths and project-root discovery
-2. context rendering and truncation
-3. project sheet operations
-4. topic normalization
-5. global profile persistence and migration
-6. stable CLI installation
+| Module | Responsibility |
+|---|---|
+| `paths.py` | Global/project paths + root discovery |
+| `topics.py` | Normalization, aliases, anti-noise |
+| `sections.py` | Markdown section read/replace |
+| `context.py` | Inject truncation |
+| `profile.py` | Global profile / queue / covered |
+| `project.py` | Project sheet operations |
+| `install.py` | Stable CLI + package copy to `~/.cursor/learning/` |
 
-After each extraction, run the Hook and CLI regression suite. Keep compatibility
-imports temporarily if the installed CLI requires them.
+`lib_profile.py` remains a compatibility re-export. `install_cli` copies the
+shim, `cli.py`, and the `learning/` package.
 
 Exit: entry points are thin and no module has unrelated persistence,
 installation, and rendering responsibilities.
