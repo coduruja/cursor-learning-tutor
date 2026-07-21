@@ -1,5 +1,17 @@
 # Changelog
 
+## 2.4.0
+- Split the always-on tutor rule into `tutor-core` plus intelligent rules for
+  concept capture, recording, and project-learning boundary.
+- Evidence policy: only a one-topic `study-probe` (5–10 questions, ≥50% correct)
+  can write `covered`; self-report and teaching exposure do not.
+- Skills ownership: `study-plan` is read-only; `study-log` owns init/want and
+  routes “I learned X” to probe; `study-deep` always hands off to probe.
+- Recording contract: `want`/`covered` CLI and want-only marker fallback live
+  only in `learning-recording`; `LEARNING-LOG` covered markers are retired.
+- Architecture checks under `scripts/` for CLI/gate ownership, frontmatter,
+  install smoke, and scenario-matrix structure.
+
 ## 2.3.0
 - Replace legacy commands with Agent Skills under `skills/<name>/SKILL.md`.
 - `study-log` remains explicit-only; plan, probe, and deep-study workflows can

@@ -1,8 +1,8 @@
 {
   "name": "cursor-learning-tutor",
   "displayName": "Learning Tutor",
-  "version": "2.3.0",
-  "description": "Learning tutor: calibrates to your level, queues conceptual gaps, per-project stack, /study-probe and /study-deep.",
+  "version": "2.4.0",
+  "description": "Learning tutor with modular rules, evidence-based one-topic probes, and Skills for plan, log, probe, and deep study.",
   "author": { "name": "Pedro Magalhães" },
   "keywords": ["learning", "tutor", "study", "education"],
   "license": "MIT",

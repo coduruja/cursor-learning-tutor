@@ -6,7 +6,7 @@
     {
       "name": "cursor-learning-tutor",
       "source": ".",
-      "description": "Learning tutor: calibrates to your level, queues gaps, per-project stack, /study-probe and /study-deep."
+      "description": "Learning tutor with modular rules, evidence-based probes, and Skills for plan, log, probe, and deep study."
     }
   ]
 }
