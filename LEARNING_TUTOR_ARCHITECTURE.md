@@ -292,9 +292,9 @@ deliberate profile updates.
 
 **Problems / risks**
 
-- Restates the full `covered` / `want` / `init` CLI block. That duplicates the
-  persistence contract that `learning-recording.mdc` is meant to own (for
-  `want`/`covered`; `init` is intentionally skill-side today).
+- Restates the full `covered` / `want` / `init` CLI block, duplicating the
+  persistence contract that `learning-recording.mdc` owns — **resolved by
+  Decision 4:** replace with a pointer to the recording policy; keep `init`.
 - **Evidence policy (decision made):** “User describes something they learned”
   is not enough to record `covered`. `/study-log` will no longer be an escape
   hatch for attesting knowledge: it must route the user to a one-topic
@@ -356,8 +356,8 @@ scored answers; uses an on-demand rubric.
 **Problems / risks**
 
 - Embeds a full CLI persistence block (`covered`, `want`, `project-drop`,
-  `project-sync`). Overlaps `learning-recording` for `want`/`covered`; the
-  project-* commands are probe-specific and probably should stay here.
+  `project-sync`) — **resolved by Decision 4:** point `want`/`covered` at the
+  recording policy; keep the probe-specific project-* commands in the Skill.
 - Repeats transferability guidance already present in the boundary rule and
   again (more fully) in the rubric.
 - Does not mention coordinating with `learning-recording` or `concept-gap-
@@ -406,7 +406,8 @@ scored answers; uses an on-demand rubric.
 **Problems / risks**
 
 - Does not point at `learning-recording` for the write contract (markers,
-  feedback line, CLI-missing behavior).
+  feedback line, CLI-missing behavior) — **addressed by Decision 4:** the
+  optional queue write defers to the recording policy.
 - After delivering a track, does not offer `/study-probe` to attest learning —
   integration with evidence policy is missing (**open** whether deep should
   hand off to probe).
@@ -559,14 +560,46 @@ Implementation:
    - “What do I know about Docker?” → ask whether the user wants the saved
      profile state or an assessment; do not guess between plan and probe.
 
+#### Decision 4 — single recording contract in `learning-recording`
+
+`learning-recording.mdc` is the only place that spells out how to persist
+`want` and `covered`: full CLI command forms, marker fallback, CLI-missing
+behavior, and the required `Saved to …` feedback line. Skills do not repeat
+those blocks; they state **when** their flow writes and defer the **how** with
+a one-line pointer (“persist through the Learning Tutor recording policy”).
+
+Skills keep only the commands that are exclusive to their workflow and outside
+the recording contract:
+
+- `study-log`: `init` (profile creation)
+- `study-probe`: `project-drop`, `project-sync --probe-summary`
+- `study-plan`: `show`, `project-show`, missing-sheet `project-sync`
+  (read/local-sheet path; never global profile writes, per Decision 2)
+
+Accepted trade-off: `learning-recording` is Apply Intelligently, so in theory
+it might not load during a Skill run. Its description already targets exactly
+these situations (“when a learning event … requires a profile write”), and the
+Skill text saying “persist through the recording policy” is itself a strong
+retrieval signal. If real usage shows missed loads, the fix is to strengthen
+that rule's description — not to re-duplicate CLI blocks into Skills.
+
+Implementation:
+
+1. `study-log`: replace the `covered`/`want` CLI block with the pointer to the
+   recording policy; keep `init` (and the probe routing from Decisions 1/1A).
+2. `study-probe`: replace `covered`/`want` command lines with the pointer;
+   keep `project-drop` and `project-sync --probe-summary` in the Skill.
+3. `study-deep`: point the optional queue write at the recording policy
+   instead of naming the CLI directly.
+4. Keep the full CLI forms, marker fallback, and feedback requirement only in
+   `learning-recording.mdc`.
+5. Automated check (migration step 5): no `cli.py want` / `cli.py covered`
+   lines outside `rules/learning-recording.mdc`.
+
 ### Open questions (Skills) — undecided, keep visible
 
 These are recorded for later decisions. Do not treat them as resolved:
 
-5. **Recording contract in Skills:** Replace duplicated CLI blocks with “follow
-   `learning-recording`” plus skill-specific extras (`init`, `project-drop`,
-   probe-summary), or keep CLI copies for Skills that must work even when the
-   intelligent rule does not load?
 6. **Transferability copies:** One canonical rule + short reminders, or allow
    the rubric to keep a full gate because probe examples are valuable there?
 7. **Deep → probe handoff:** Should `study-deep` always offer a probe after the
@@ -582,6 +615,7 @@ These are recorded for later decisions. Do not treat them as resolved:
 ~~2. Onboarding owner~~ → **Decision 2**
 ~~3. Auto-invoke collision~~ → **Decision 3**
 ~~4. Plan gaps → queue~~ → **Decision 2** (plan never writes `want`)
+~~5. Recording contract in Skills~~ → **Decision 4** (pointer, not copies)
 
 ## What should move out of rules
 
@@ -694,7 +728,7 @@ mistakes observed while developing this repository.
 | “Test me on Docker” | `study-probe` + rubric | One-topic assessment | — |
 | “What do I know about Docker?” | Clarify | Ask snapshot vs assessment | — |
 | `/study-plan` in repo without project sheet | `study-plan` | Optional `project-sync` once | — |
-| `/study-probe` | `study-probe` + rubric | One topic → questions → wait → ≥50% → write | CLI overlap with recording rule (Q5) |
+| `/study-probe` | `study-probe` + rubric | One topic → questions → wait → ≥50% → write | — |
 | `/study-deep` with empty topic | `study-deep` | `queue-next` or ask; subagent track | No probe handoff (Q7) |
 | Empty profile + `/study-plan` | `study-plan` | Report empty; point to `/study-log`; no writes | — |
 | Empty profile + `/study-log` alone | `study-log` | `init` + first `want` | — |
@@ -735,6 +769,8 @@ this document. Decisions 1 and 1A lock the evidence policy: only a one-topic
 `study-probe` with ≥50% correct on that topic can write `covered`. Decision 2
 makes `study-plan` read-only and gives empty-profile `init` / manual `want` to
 `study-log`. Decision 3 keeps plan/probe auto-invocable but separates their
-descriptions into passive snapshot vs explicit assessment intent. Remaining
-open Skill questions still need ownership decisions before code changes for
-step 3/4. Agents/hooks inspection is still deferred.
+descriptions into passive snapshot vs explicit assessment intent. Decision 4
+makes `learning-recording` the single write contract — Skills point at it and
+keep only flow-specific commands. Remaining open Skill questions still need
+ownership decisions before code changes for step 3/4. Agents/hooks inspection
+is still deferred.
