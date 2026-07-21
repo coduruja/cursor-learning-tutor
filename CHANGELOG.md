@@ -1,7 +1,15 @@
 # Changelog
 
+## 2.3.0
+- Replace legacy commands with Agent Skills under `skills/<name>/SKILL.md`.
+- `study-log` remains explicit-only; plan, probe, and deep-study workflows can
+  auto-activate from specific user intent.
+- `study-probe` uses an on-demand assessment rubric for evidence and
+  transferability instead of treating exposure as understanding.
+- Plugin manifest now discovers `skills/` and no longer declares `commands/`.
+
 ## 2.2.0
-- Project copy, rules, commands, agents, CLI messages, and docs are English.
+- Project copy, rules, workflows, agents, CLI messages, and docs are English.
 - Canonical levels: `beginner` / `intermediate` / `advanced` (Portuguese aliases still accepted).
 - Profile/project section titles are English; legacy Portuguese headings are still read and rewritten on update.
 

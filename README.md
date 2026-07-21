@@ -48,12 +48,16 @@ python3 ~/.cursor/learning/cli.py project-sync --stack "Next.js;Prisma" --candid
 | Component | Role |
 |---|---|
 | `rules/tutor.mdc` | Intent (`concept_gap` / `repo_local` / `agent_task`) + auto-want + calibration |
-| `commands/study-log.md` | Explicit recording |
-| `commands/study-plan.md` | Snapshot or onboarding if empty |
-| `commands/study-probe.md` | Active probe → adjusts covered/want |
-| `commands/study-deep.md` | Starts a track via subagent |
+| `skills/study-log/` | Manual-only profile correction or explicit recording |
+| `skills/study-plan/` | Auto-discoverable passive snapshot or onboarding |
+| `skills/study-probe/` | Auto-discoverable evidence-based assessment with an on-demand rubric |
+| `skills/study-deep/` | Auto-discoverable curated track orchestration |
 | `agents/study-researcher.md` | Curated research in an isolated context |
 | `hooks/*` | Injects profile + project, installs CLI, captures backup markers |
+
+Skills can be invoked explicitly with `/study-*`. Cursor may also apply
+`study-plan`, `study-probe`, and `study-deep` automatically when the request
+matches their descriptions. `study-log` is intentionally explicit-only.
 
 ## Installation
 
@@ -63,10 +67,10 @@ copies the CLI to `~/.cursor/learning/`.
 
 ### Direct copy (no marketplace)
 ```bash
-mkdir -p ~/.cursor/rules ~/.cursor/agents ~/.cursor/commands ~/.cursor/hooks ~/.cursor/learning
+mkdir -p ~/.cursor/rules ~/.cursor/agents ~/.cursor/skills ~/.cursor/hooks ~/.cursor/learning
 cp rules/tutor.mdc            ~/.cursor/rules/
 cp agents/study-researcher.md ~/.cursor/agents/
-cp commands/*.md              ~/.cursor/commands/
+cp -R skills/*                ~/.cursor/skills/
 cp hooks/lib_profile.py hooks/learning_cli.py hooks/capture_learning.py hooks/inject_profile.py ~/.cursor/hooks/
 cp hooks/learning_cli.py ~/.cursor/learning/cli.py
 cp hooks/lib_profile.py ~/.cursor/learning/lib_profile.py

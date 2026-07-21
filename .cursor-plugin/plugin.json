@@ -1,13 +1,13 @@
 {
   "name": "cursor-learning-tutor",
   "displayName": "Learning Tutor",
-  "version": "2.2.0",
+  "version": "2.3.0",
   "description": "Learning tutor: calibrates to your level, queues conceptual gaps, per-project stack, /study-probe and /study-deep.",
   "author": { "name": "Pedro Magalhães" },
   "keywords": ["learning", "tutor", "study", "education"],
   "license": "MIT",
   "rules": "./rules/",
   "agents": "./agents/",
-  "commands": "./commands/",
+  "skills": "./skills/",
   "hooks": "./hooks/hooks.json"
 }

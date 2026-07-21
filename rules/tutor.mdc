@@ -90,8 +90,8 @@ Isolated line at the end of the reply:
 If you saved something, say in one line: `Saved to profile: …` or `Saved to queue: …`.
 If the CLI replied “Already in queue” / “Ignored”, no need to insist.
 
-## Commands
-- `/study-log` — explicitly record covered or queue
-- `/study-plan` — snapshot (or onboarding if empty)
-- `/study-probe` — active probe; adjusts covered/want from quiz answers
-- `/study-deep` — curated track via `study-researcher` subagent
+## Skills
+- `/study-log` — manual-only profile correction or explicit record
+- `/study-plan` — passive snapshot; may auto-activate for learning-progress requests
+- `/study-probe` — evidence-based assessment; may auto-activate for knowledge tests
+- `/study-deep` — curated track; may auto-activate for deep-study requests
