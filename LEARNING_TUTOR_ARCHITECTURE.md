@@ -243,7 +243,7 @@ choose one owner, and leave at most a short pointer in the other place.
 | Content | Rule today | Skill today | Decision |
 |---|---|---|---|
 | CLI `want` / `covered` + write feedback | `learning-recording` | `study-log`, parts of `study-probe` / `study-deep` | **Rule** is the canonical persistence contract. Skills keep *when* to write for their flow; drop duplicated full CLI/marker blocks where safe, or point at the recording policy |
-| Transferability / no global pollution | `project-learning-boundary` | `study-plan`, `study-probe` (+ assessment rubric) | **Rule** owns the invariant. Skills may keep a one-line reminder, not a second full policy |
+| Transferability / no global pollution | `project-learning-boundary` | `study-plan`, `study-probe` (+ assessment rubric) | **Decision 5:** rule owns the test; Skills/rubric apply it with at most a short reminder + probe-specific examples/scoring |
 | Auto-`want` on conceptual questions | `concept-gap-capture` | — | **Rule only** (not a Skill) |
 | Probe scoring / evidence rubric | — | `study-probe` + `references/assessment-rubric.md` | **Skill + reference only** |
 | Snapshot / stack `project-sync` (read path) | — (removed from rules) | `study-plan` | **Skill only** (no `init` / `want` / `covered`) |
@@ -326,7 +326,8 @@ project sheet; onboards when the profile is empty.
 **Problems / risks**
 
 - Restates a shortened transferability / anti-promotion policy that also lives
-  in `project-learning-boundary.mdc` and again in the probe rubric.
+  in `project-learning-boundary.mdc` — **resolved by Decision 5:** keep at most
+  a one-line reminder; the boundary rule owns the test.
 - “Gaps” in the snapshot can surface transferable concepts that are neither
   queued nor covered. **Decision 2:** plan must not auto-`want` those gaps —
   report them and point to `/study-log` (or wait for `concept-gap-capture`).
@@ -383,9 +384,9 @@ scored answers; uses an on-demand rubric.
 **Problems / risks**
 
 - The transferability gate text is nearly a second copy of
-  `project-learning-boundary.mdc`. **Open:** keep a short reminder in the
-  rubric (probe-local examples are useful) vs. point at the rule and keep only
-  probe-specific examples/scoring here.
+  `project-learning-boundary.mdc` — **resolved by Decision 5:** the boundary
+  rule owns the test; the rubric points at it and keeps only probe-specific
+  question design, examples, and scoring.
 - This file is the canonical evidence policy for `covered`. The implementation
   must bind `study-log`, `study-probe`, and `learning-recording` to it: neither
   self-report nor an explanation in chat can create a `covered` entry.
@@ -409,11 +410,11 @@ scored answers; uses an on-demand rubric.
   feedback line, CLI-missing behavior) — **addressed by Decision 4:** the
   optional queue write defers to the recording policy.
 - After delivering a track, does not offer `/study-probe` to attest learning —
-  integration with evidence policy is missing (**open** whether deep should
-  hand off to probe).
+  **resolved by Decision 7:** always hand off to a one-topic `study-probe` for
+  the track topic (completion of a track is never `covered` by itself).
 - Does not update `covered` (correct for a research Skill), but nothing in the
-  Skill states that completion of a track is **not** evidence — easy for a
-  model to drift if recording rules are soft.
+  Skill states that completion of a track is **not** evidence — **Decision 7**
+  makes the mandatory probe handoff the enforcement path.
 - Depends on `agents/study-researcher.md` for quality; that agent was **not**
   inspected in this pass (deferred).
 
@@ -427,12 +428,15 @@ concept_gap (rule) ──want──► queue
                 ▼
          study-plan ──offers──► study-probe ──covered/want──► profile
                 │                      ▲
-                └──offers──► study-deep ──optional want──► queue
+                └──offers──► study-deep ──always──► study-probe (same topic)
                                    │
-                                   └──(? open)──► study-probe
+                                   └── optional want if not queued
 
 study-log ── explicit want/init ──► profile
           └── request to attest learning ──► study-probe ──► covered/want
+
+self-attestation phrases ("I think I understand", "finished studying", …)
+          └──► study-probe (one topic)
 ```
 
 Shared dependencies every Skill assumes:
@@ -541,9 +545,10 @@ description: Provides a read-only snapshot of the Learning Tutor profile:
 # study-probe
 description: Tests understanding of one named or selected topic by asking
   practical questions, scoring the answers, and updating the profile from
-  evidence. Use only when the user asks to be tested, quizzed, assessed, or
-  to verify that they truly understand a topic. Do not use for passive profile
-  summaries or study-plan requests.
+  evidence. Use when the user asks to be tested, quizzed, or assessed; claims
+  they understand, finished studying, or read the material on a topic; or after
+  a study-deep track for that topic. Do not use for passive profile summaries
+  or study-plan requests.
 ```
 
 Implementation:
@@ -596,14 +601,69 @@ Implementation:
 5. Automated check (migration step 5): no `cli.py want` / `cli.py covered`
    lines outside `rules/learning-recording.mdc`.
 
+#### Decision 5 — boundary rule owns transferability; probe uses it
+
+`project-learning-boundary.mdc` is the single owner of the transferability
+test: whether a concept is repository-local or worth global learning. Capture,
+plan, and recording decisions defer to that rule.
+
+`study-probe` (via `assessment-rubric.md`) does **not** redefine the gate. It
+applies the boundary rule so questions and scoring stay on transferable
+concepts, and keeps only probe-specific material:
+
+- question design (what to ask / avoid)
+- probe-local examples that help rewrite a local symbol into a broader topic
+- scoring bands and evidence notes (including the ≥50% one-topic bar)
+
+Implementation:
+
+1. In `assessment-rubric.md`, replace the duplicated Yes/No/Partly policy block
+   with a short directive: apply the project-learning-boundary transferability
+   test before selecting or scoring a topic.
+2. Keep question design, examples table (or equivalent probe examples), and
+   scoring sections in the rubric.
+3. In `study-probe/SKILL.md` and `study-plan/SKILL.md`, keep at most a one-line
+   reminder; do not restate the full boundary policy.
+4. Improve misclassification of “local vs transferable” by editing
+   `project-learning-boundary.mdc` only; improve weak probe questions by
+   editing the rubric only.
+
+#### Decision 7 — always probe after deep; probe on self-attestation
+
+`study-deep` delivers a curated track; it never attests knowledge. After the
+track is returned, always continue into a one-topic `study-probe` for that same
+topic (Decisions 1/1A). Do not only “offer” the probe as an optional
+suggestion — the next step is the assessment.
+
+`study-probe` must also auto-activate when the user claims understanding or
+study completion without asking for a quiz by name. Examples of triggering
+context:
+
+- “I think I understand …”
+- “I already read the documentation”
+- “I finished studying”
+- “I studied the topic”
+- similar self-attestation or “ready to prove it” phrasing
+
+Those turns route to a one-topic probe; they never write `covered` from the
+claim alone (Decision 1).
+
+Implementation:
+
+1. `study-deep` Finish section: after presenting the track, invoke/hand off to
+   `study-probe` for the track topic (ask which topic only if ambiguous).
+2. State explicitly in `study-deep` that finishing the track is not evidence and
+   must not write `covered`.
+3. Expand the `study-probe` description (Decision 3 target text) to include
+   self-attestation and post-deep handoff triggers, not only “test/quiz me”.
+4. Align `tutor-core` routing if needed so those phrases map to `study-probe`.
+5. Scenarios: deep track → mandatory one-topic probe; “I think I understand
+   Docker” → probe, no immediate `covered`.
+
 ### Open questions (Skills) — undecided, keep visible
 
 These are recorded for later decisions. Do not treat them as resolved:
 
-6. **Transferability copies:** One canonical rule + short reminders, or allow
-   the rubric to keep a full gate because probe examples are valuable there?
-7. **Deep → probe handoff:** Should `study-deep` always offer a probe after the
-   track? (If yes, that probe must still be one-topic, matching Decisions 1/1A.)
 8. ~~**Probe light mode:** Support fewer than 5 questions for quick checks?~~
    **Superseded by Decision 1A:** probes are one-topic; question count is about
    depth on that topic, not how many topics to pack in. Exact question count
@@ -616,6 +676,8 @@ These are recorded for later decisions. Do not treat them as resolved:
 ~~3. Auto-invoke collision~~ → **Decision 3**
 ~~4. Plan gaps → queue~~ → **Decision 2** (plan never writes `want`)
 ~~5. Recording contract in Skills~~ → **Decision 4** (pointer, not copies)
+~~6. Transferability copies~~ → **Decision 5** (boundary rule owns; probe applies it)
+~~7. Deep → probe handoff~~ → **Decision 7** (always probe after deep; also on self-attestation)
 
 ## What should move out of rules
 
@@ -729,7 +791,9 @@ mistakes observed while developing this repository.
 | “What do I know about Docker?” | Clarify | Ask snapshot vs assessment | — |
 | `/study-plan` in repo without project sheet | `study-plan` | Optional `project-sync` once | — |
 | `/study-probe` | `study-probe` + rubric | One topic → questions → wait → ≥50% → write | — |
-| `/study-deep` with empty topic | `study-deep` | `queue-next` or ask; subagent track | No probe handoff (Q7) |
+| `/study-deep` with empty topic | `study-deep` → one-topic `study-probe` | Track then mandatory assessment | — |
+| “I think I understand Docker” | `study-probe` | One-topic probe; no self-report `covered` | — |
+| “I finished studying HTTP” | `study-probe` | One-topic probe | — |
 | Empty profile + `/study-plan` | `study-plan` | Report empty; point to `/study-log`; no writes | — |
 | Empty profile + `/study-log` alone | `study-log` | `init` + first `want` | — |
 
@@ -771,6 +835,10 @@ makes `study-plan` read-only and gives empty-profile `init` / manual `want` to
 `study-log`. Decision 3 keeps plan/probe auto-invocable but separates their
 descriptions into passive snapshot vs explicit assessment intent. Decision 4
 makes `learning-recording` the single write contract — Skills point at it and
-keep only flow-specific commands. Remaining open Skill questions still need
-ownership decisions before code changes for step 3/4. Agents/hooks inspection
-is still deferred.
+keep only flow-specific commands. Decision 5 makes
+`project-learning-boundary` the owner of the transferability test; the probe
+rubric applies that rule instead of redefining it. Decision 7 requires a
+one-topic `study-probe` after every `study-deep` track and on self-attestation
+phrases (“I think I understand”, “finished studying”, …). Remaining open Skill
+questions still need ownership decisions before code changes for step 3/4.
+Agents/hooks inspection is still deferred.
