@@ -1,9 +1,13 @@
 #!/usr/bin/env python3
 """
-afterAgentResponse: capture LEARNING-LOG / LEARNING-WANT markers.
+afterAgentResponse: capture LEARNING-WANT markers (want-only fallback).
 
-Reads hook JSON from stdin, finds markers the rule instructs the agent to emit,
-and updates ~/.cursor/learning/profile.md.
+Reads hook JSON from stdin, finds want markers the recording policy instructs
+the agent to emit when the CLI is unavailable, and updates
+~/.cursor/learning/profile.md.
+
+Covered knowledge is never written from markers — only from one-topic probe
+evidence via the CLI.
 """
 
 from __future__ import annotations
@@ -14,10 +18,6 @@ import re
 import sys
 from pathlib import Path
 
-LOG_RE = re.compile(
-    r'LEARNING-LOG\s+topic="(?P<topic>[^"]*)"\s+level="(?P<level>[^"]*)"'
-    r'(?:\s+note="(?P<note>[^"]*)")?'
-)
 WANT_RE = re.compile(
     r'LEARNING-WANT\s+topic="(?P<topic>[^"]*)"(?:\s+note="(?P<note>[^"]*)")?'
 )
@@ -54,12 +54,6 @@ def main() -> None:
     lib = _load_lib()
     lib.install_cli(Path(__file__).resolve().parent)
     text = read_stdin_text()
-    for m in LOG_RE.finditer(text):
-        lib.add_covered(
-            m.group("topic").strip(),
-            m.group("level").strip(),
-            (m.group("note") or "").strip(),
-        )
     for m in WANT_RE.finditer(text):
         lib.add_want(m.group("topic").strip(), (m.group("note") or "").strip())
     print(json.dumps({"continue": True}))
