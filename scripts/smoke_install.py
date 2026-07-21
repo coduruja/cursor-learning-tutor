@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 """Local install / packaging smoke for Learning Tutor.
 
-Verifies the plugin manifest paths, rule activation modes, Skill packages, and
+Verifies the plugin manifest paths, rule activation modes, Skill packages,
+hooks.json script resolution, the study-researcher Agent contract, and
 optionally installs the stable CLI under ~/.cursor/learning (same files
 sessionStart would copy).
 
@@ -89,6 +90,72 @@ def check_skills() -> None:
     print(f"OK skills packages: {', '.join(required)}")
 
 
+def check_hooks_json(plugin: dict) -> None:
+    rel = plugin.get("hooks")
+    hooks_path = (ROOT / rel).resolve()
+    if not hooks_path.is_file():
+        fail(f"hooks path is not a file: {rel}")
+    data = json.loads(hooks_path.read_text(encoding="utf-8"))
+    if data.get("version") != 1:
+        fail(f"hooks.json version must be 1, found {data.get('version')}")
+    hooks = data.get("hooks")
+    if not isinstance(hooks, dict):
+        fail("hooks.json missing hooks object")
+    expected_events = ("sessionStart", "afterAgentResponse")
+    for event in expected_events:
+        entries = hooks.get(event)
+        if not isinstance(entries, list) or not entries:
+            fail(f"hooks.json missing {event} entries")
+        for entry in entries:
+            command = entry.get("command", "")
+            if not isinstance(command, str) or not command.strip():
+                fail(f"hooks.json {event} entry missing command")
+            # Resolve scripts referenced under $CURSOR_PLUGIN_ROOT/hooks/...
+            for match in re.finditer(
+                r"\$CURSOR_PLUGIN_ROOT/(hooks/[^\"'\s]+)", command
+            ):
+                script = (ROOT / match.group(1)).resolve()
+                if not script.is_file():
+                    fail(f"hooks.json {event} references missing {match.group(1)}")
+    required_scripts = {
+        "inject_profile.py",
+        "capture_learning.py",
+        "learning_cli.py",
+        "lib_profile.py",
+    }
+    present = {p.name for p in (ROOT / "hooks").glob("*.py")}
+    missing = sorted(required_scripts - present)
+    if missing:
+        fail(f"hooks/ missing scripts: {', '.join(missing)}")
+    print(
+        "OK hooks.json "
+        f"(events: {', '.join(expected_events)}; scripts: {', '.join(sorted(required_scripts))})"
+    )
+
+
+def check_agent() -> None:
+    agent = ROOT / "agents" / "study-researcher.md"
+    if not agent.is_file():
+        fail("missing agents/study-researcher.md")
+    text = agent.read_text(encoding="utf-8")
+    match = FRONTMATTER_RE.match(text)
+    if not match:
+        fail("study-researcher.md missing YAML frontmatter")
+    fm = match.group(1)
+    if not re.search(r"(?m)^name:\s*study-researcher\s*$", fm):
+        fail("study-researcher.md frontmatter name must be study-researcher")
+    if "description:" not in fm:
+        fail("study-researcher.md frontmatter missing description")
+    if not re.search(r"(?m)^model:\s*inherit\s*$", fm):
+        fail("study-researcher.md frontmatter model must be inherit")
+    if not re.search(r"(?m)^readonly:\s*true\s*$", fm):
+        fail("study-researcher.md frontmatter readonly must be true")
+    deep = ROOT / "skills" / "study-deep" / "SKILL.md"
+    if "study-researcher" not in deep.read_text(encoding="utf-8"):
+        fail("skills/study-deep/SKILL.md must reference study-researcher")
+    print("OK agent study-researcher (frontmatter + study-deep link)")
+
+
 def install_cli() -> None:
     dest = Path.home() / ".cursor" / "learning"
     dest.mkdir(parents=True, exist_ok=True)
@@ -113,6 +180,8 @@ def main() -> int:
     check_manifest_paths(plugin)
     check_rules()
     check_skills()
+    check_hooks_json(plugin)
+    check_agent()
     if args.install_cli:
         install_cli()
     print("Smoke install checks passed.")

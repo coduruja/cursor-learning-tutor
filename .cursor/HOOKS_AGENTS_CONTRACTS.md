@@ -250,3 +250,13 @@ Phase E may still tighten body I/O wording and add smoke checks; renaming
 - No new automated tests (Phase B).
 
 Exit criterion met: contracts are written; runtime behavior unchanged.
+
+## Phase B harness
+
+```bash
+python3 scripts/test_hooks_agents.py
+python3 scripts/smoke_install.py
+```
+
+These exercises document current Hook/CLI/Agent behavior (including known
+defects such as empty `LEARNING-WANT` topics) without changing runtime code.

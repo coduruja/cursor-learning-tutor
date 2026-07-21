@@ -246,14 +246,14 @@ Deliverable: `.cursor/HOOKS_AGENTS_CONTRACTS.md`
 
 Exit: contracts are written and no runtime behavior has changed.
 
-### Phase B — Build a regression harness
+### Phase B — Build a regression harness — **done**
 
-- Test `LEARNING-WANT` parsing, including empty and malformed topics.
-- Test the supported `afterAgentResponse` payload.
-- Test fail-open output for both Hooks.
-- Test profile and project context rendering with temporary directories.
-- Extend install smoke checks to parse `hooks.json` and resolve its scripts.
-- Check Agent frontmatter and the `study-deep` reference.
+Deliverables:
+
+- `scripts/test_hooks_agents.py` — WANT parsing, official `text` payload,
+  fail-open hooks, temp-HOME profile/project rendering, Agent link
+- `scripts/smoke_install.py` — parses `hooks.json`, resolves hook scripts,
+  checks `study-researcher` frontmatter + `study-deep` reference
 
 Exit: current intended behavior is executable and failures are reproducible.
 

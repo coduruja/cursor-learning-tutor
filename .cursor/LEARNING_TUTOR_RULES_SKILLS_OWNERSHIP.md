@@ -81,4 +81,5 @@ Maintainer rules: optional; add only when the same editing mistakes recur.
 python3 scripts/check_architecture.py
 python3 scripts/smoke_install.py
 python3 scripts/verify_scenarios.py
+python3 scripts/test_hooks_agents.py
 ```
