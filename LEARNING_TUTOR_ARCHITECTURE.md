@@ -1,0 +1,383 @@
+# Learning Tutor Architecture
+
+## Goal
+
+Make Learning Tutor reliable without injecting the full tutoring, recording,
+project-discovery, and workflow policy into every Agent request.
+
+This document covers the **runtime architecture of Learning Tutor**: how Rules
+and Skills divide responsibility, when each loads, and how to avoid duplicated
+or conflicting policy. It began as a rules-focused proposal and now also
+records the Skills ownership analysis needed to finish the refactor.
+
+## Sources reviewed
+
+Primary sources:
+
+- [Cursor Rules documentation](https://cursor.com/docs/context/rules)
+- [Cursor Plugins reference](https://cursor.com/docs/reference/plugins)
+
+Practitioner guidance and public examples:
+
+- [Morph — Cursor Rules Best Practices](https://www.morphllm.com/cursor-rules-best-practices)
+- [TECHSY — Cursor Rules Guide](https://techsy.io/en/blog/cursor-rules-guide)
+- [Packmind — Context Engineering Best Practices](https://packmind.com/context-engineering-ai-coding/context-engineering-best-practices/)
+- [LaunchDarkly Labs — public Cursor rules](https://github.com/launchdarkly-labs/cursor-rules)
+
+Cursor documentation is the source of truth for behavior. Third-party sources
+are useful for operational patterns, not product guarantees.
+
+## What Cursor rules actually do
+
+Applied rules are inserted near the start of the Agent context. Their
+frontmatter controls when they load:
+
+| Mode | Frontmatter | Appropriate use |
+|---|---|---|
+| Always Apply | `alwaysApply: true` | Small, universal invariants |
+| Apply Intelligently | `alwaysApply: false`, descriptive `description`, no `globs` | Intent-based policies |
+| File-scoped | `alwaysApply: false`, `globs` | Guidance tied to specific files |
+| Manual | `alwaysApply: false`, no description/globs | Rare guidance invoked with `@rule` |
+
+With `alwaysApply: true`, Cursor ignores `description` and `globs`. Every line is
+paid for in every chat, whether relevant or not.
+
+Rules should provide persistent policy. Skills should own multi-step workflows,
+scripts, optional references, and substantial procedures.
+
+## What Cursor skills actually do
+
+Agent Skills are packages under `skills/<name>/SKILL.md`. Cursor discovers them
+from the plugin `skills/` path. Unlike always-on rules, a Skill loads when:
+
+- the user invokes it explicitly (for example `/study-log`), or
+- the model matches the Skill `description` to the user intent (unless
+  `disable-model-invocation: true`)
+
+Skills may carry progressive disclosure via `references/` (loaded only when the
+Skill needs them). That makes Skills the right home for long procedures and
+rubrics that should not sit in every Agent turn.
+
+### Rule vs Skill — ownership test
+
+| Keep in a **Rule** | Keep in a **Skill** |
+|---|---|
+| Short policy (“when X, do / do not Y”) | Multi-step workflow (load → decide → act → report) |
+| Must apply outside any `/study-*` invocation | Only meaningful when that Skill is active |
+| Shared contract used by several flows | Operational detail of one flow |
+| Always-on or intent-scoped invariants | Scripts, checklists, optional references |
+
+A useful shorthand from the refactor discussions:
+
+- **Rule** ≈ “write always like this” / “never do that”
+- **Skill** ≈ “run this study task end-to-end”
+- **Reference** ≈ “read this detailed doc only when the Skill needs it”
+
+`learning-recording` is a Rule (not a Skill) because persistence is a shared
+policy, not a user-invoked study task. `assessment-rubric.md` stays a Skill
+reference because scoring detail is only needed during `study-probe`.
+
+## Current architecture audit
+
+### Historical problem (monolithic always-on rule)
+
+The distributed runtime rule `rules/tutor.mdc` was ~98 lines and always applied.
+It combined at least six concerns:
+
+1. Tutor identity and profile calibration
+2. User-intent classification
+3. Concept-gap capture and anti-noise policy
+4. Project stack discovery and synchronization
+5. CLI and fallback-marker reference
+6. Skill catalog and routing
+
+This created four problems.
+
+#### 1. Unnecessary context cost
+
+CLI syntax, marker formats, project synchronization, and skill descriptions are
+loaded even for ordinary coding requests that contain no learning event.
+
+#### 2. Rule/Skill responsibility overlap
+
+`study-log`, `study-plan`, `study-probe`, and `study-deep` already contain their
+own workflows. Repeating those procedures in an always-on rule increases drift
+and creates multiple sources of truth.
+
+#### 3. Policy conflicts become harder to see
+
+The monolithic rule permitted recording a concept as covered after it was taught.
+The probe rubric requires evidence of understanding. A monolithic rule lets
+these policies evolve independently inside one large prompt instead of exposing
+the contradiction as a deliberate boundary.
+
+#### 4. Project-local and global learning are coupled
+
+Project stack discovery is a workflow, not a universal tutoring invariant.
+Keeping it always-on encourages repo details to leak into the global learning
+profile.
+
+### Implementation status (rules split)
+
+Steps 1–2 of the migration are done:
+
+| Rule | Mode | Status |
+|---|---|---|
+| `tutor-core.mdc` | Always Apply | Implemented |
+| `concept-gap-capture.mdc` | Apply Intelligently | Implemented |
+| `learning-recording.mdc` | Apply Intelligently | Implemented |
+| `project-learning-boundary.mdc` | Apply Intelligently | Implemented |
+
+`rules/tutor.mdc` has been removed. `project-sync` discovery now lives in the
+`study-plan` Skill. Remaining work is mainly **deduplicating Skill/rule overlap**
+and locking one evidence policy for `covered`.
+
+## Recommended runtime rule set
+
+Keep distributed rules under `rules/`, because the plugin manifest packages
+that directory into every project where Learning Tutor is installed.
+
+### 1. `tutor-core.mdc` — Always Apply
+
+Target: roughly 15–25 lines.
+
+Responsibilities:
+
+- Establish the tutor role
+- Use `LEARNING-PROFILE` to calibrate explanation depth
+- Never invent learning history
+- Distinguish ordinary repository work from a learning event
+- Route explicit study requests to the relevant Skill
+- State the invariant that global learning must be transferable
+
+Do not include:
+
+- CLI command catalog
+- Marker syntax
+- Project stack scanning
+- Probe scoring
+- Deep-study workflow
+
+Why always-on: calibration and the distinction between normal work and learning
+events must be available before the agent can decide whether another policy is
+relevant.
+
+### 2. `concept-gap-capture.mdc` — Apply Intelligently
+
+Suggested description:
+
+> Capture a transferable study topic when the user asks a conceptual question
+> such as what something is, how it works, or how two concepts differ.
+
+Responsibilities:
+
+- Detect a genuine conceptual question
+- Exclude questions about repository symbols and implementation details
+- Select at most one main transferable topic
+- Apply anti-noise and deduplication rules
+- Ask the recording policy to persist a `want`
+- Provide visible feedback
+
+Why intelligent: this policy is based on user intent, not file paths. It should
+not load for implementation-only requests.
+
+### 3. `learning-recording.mdc` — Apply Intelligently
+
+Suggested description:
+
+> Persist Learning Tutor queue or covered updates when a learning event,
+> explicit study-log request, or successful assessment requires a profile write.
+
+Responsibilities:
+
+- Define the stable CLI as the preferred write path
+- Include only the minimum `want` and `covered` command forms
+- Define marker fallback behavior
+- Require concise feedback after a successful write
+- Never infer `covered` without the evidence policy chosen by the project
+
+Why separate: all capture and assessment flows need one canonical persistence
+contract. Skills should call this contract instead of duplicating storage rules.
+
+Why a Rule (not a Skill): recording is a sub-step of capture, log, and probe —
+not a user-facing study task with its own invocation. The policy must arrive
+when a write is needed, without relying on someone remembering to open a
+reference file.
+
+### 4. `project-learning-boundary.mdc` — Apply Intelligently
+
+Suggested description:
+
+> Separate transferable learning from repository-specific context when project
+> code, stack, symbols, or local candidates influence a study decision.
+
+Responsibilities:
+
+- Apply the transferability test:
+  “Would this still be useful without opening this repository?”
+- Keep symbols, paths, environment variables, and class names project-local
+- Generalize local examples into broader concepts when possible
+- Allow `.cursor/learning/project.md` to hold local context
+- Prevent automatic promotion from project candidates to the global queue
+
+Why intelligent: this is relevant when a study decision involves project
+context, not on every Agent turn.
+
+## Skills catalog and ownership
+
+Learning Tutor ships four Skills under `skills/`:
+
+| Skill | Invocation | Owns |
+|---|---|---|
+| `study-log` | Explicit only (`disable-model-invocation: true`) | Manual corrections / deliberate profile writes |
+| `study-plan` | Explicit or auto from progress intent | Snapshot, onboarding, missing-sheet `project-sync` |
+| `study-probe` | Explicit or auto from assessment intent | Evidence-based quiz, scoring, profile updates from evidence |
+| `study-deep` | Explicit or auto from deep-study intent | Curated track via `study-researcher` subagent |
+
+### Overlap map (rule ↔ skill) and decisions
+
+Step 3 of the migration is an **ownership pass**: find duplicated content,
+choose one owner, and leave at most a short pointer in the other place.
+
+| Content | Rule today | Skill today | Decision |
+|---|---|---|---|
+| CLI `want` / `covered` + write feedback | `learning-recording` | `study-log`, parts of `study-probe` / `study-deep` | **Rule** is the canonical persistence contract. Skills keep *when* to write for their flow; drop duplicated full CLI/marker blocks where safe, or point at the recording policy |
+| Transferability / no global pollution | `project-learning-boundary` | `study-plan`, `study-probe` (+ assessment rubric) | **Rule** owns the invariant. Skills may keep a one-line reminder, not a second full policy |
+| Auto-`want` on conceptual questions | `concept-gap-capture` | — | **Rule only** (not a Skill) |
+| Probe scoring / evidence rubric | — | `study-probe` + `references/assessment-rubric.md` | **Skill + reference only** |
+| Snapshot / onboarding / stack `project-sync` | — (removed from rules) | `study-plan` | **Skill only** |
+| Research delegation to subagent | — | `study-deep` | **Skill only** |
+| Routing to `/study-*` | `tutor-core` (short pointers) | each Skill `description` | **Rule** routes; **Skill** owns the workflow |
+
+What “remove duplication” means in practice:
+
+1. Choose the owner (rule or skill).
+2. In the other place, delete the full procedure or leave a one-line pointer.
+3. Ensure there are not two conflicting policies (especially for `covered`).
+
+The noisiest remaining overlap is the **recording CLI** repeated across
+`learning-recording` and Skills. Boundary wording in plan/probe is lighter and
+can stay as a short reminder.
+
+## What should move out of rules
+
+| Current content | Better owner | Reason |
+|---|---|---|
+| Project stack scan and `project-sync` workflow | `study-plan` / `study-probe` Skills | Multi-step, on-demand workflow |
+| Probe scoring | `study-probe/references/assessment-rubric.md` | Detailed reference loaded only when needed |
+| Deep research delegation | `study-deep` Skill | Specialized orchestration |
+| Onboarding questions | `study-plan` and `study-log` Skills | Interactive workflow |
+| Full CLI catalog | README / CLI help | Not required in prompt context |
+| Marker implementation details | `learning-recording.mdc` only | Single canonical persistence contract |
+
+## Runtime rules vs repository-maintainer rules
+
+There are two different audiences:
+
+1. `rules/` — shipped by the plugin and applied to users of Learning Tutor
+2. `.cursor/rules/` — guidance for contributors editing this repository
+
+Do not mix them.
+
+Potential maintainer-only rules could include:
+
+- `.cursor/rules/plugin-components.mdc`
+  - Glob: `rules/**/*.mdc, skills/**/SKILL.md, agents/**/*.md`
+  - Enforce English copy and component boundaries
+- `.cursor/rules/hooks-python.mdc`
+  - Glob: `hooks/**/*.py`
+  - Enforce backward-compatible profile migrations and CLI validation
+
+These would improve development of the plugin without being distributed as
+tutor behavior.
+
+## Why not use globs for the runtime tutoring policies
+
+Concept gaps and learning decisions are triggered by conversation semantics.
+They can occur while any file type is open. A `**/*.py` or `**/*.ts` glob would
+scope the policy to the implementation language rather than to the user's
+intent.
+
+Use descriptive intelligent rules for tutoring policies. Reserve globs for
+maintainer rules tied to files in this repository.
+
+## Proposed target structure
+
+```text
+rules/
+├── tutor-core.mdc
+├── concept-gap-capture.mdc
+├── learning-recording.mdc
+└── project-learning-boundary.mdc
+
+skills/
+├── study-log/SKILL.md
+├── study-plan/SKILL.md
+├── study-probe/
+│   ├── SKILL.md
+│   └── references/assessment-rubric.md
+└── study-deep/SKILL.md
+
+agents/
+└── study-researcher.md
+
+.cursor/rules/                    # optional, maintainer-only
+├── plugin-components.mdc
+└── hooks-python.mdc
+```
+
+The maintainer rules are optional and should be added only for recurring
+mistakes observed while developing this repository.
+
+## Migration sequence
+
+1. ~~Extract the minimal always-on `tutor-core.mdc`.~~ **Done**
+2. ~~Add the three intelligent runtime rules with specific descriptions.~~ **Done**
+3. Remove duplicated workflows from runtime rules; keep them in Skills.
+   (Ownership pass using the overlap map above — decide per row, then edit.)
+4. Define one evidence policy for `covered` before changing recording behavior.
+5. Add automated checks for:
+   - valid `.mdc` frontmatter
+   - at most one small `alwaysApply: true` runtime rule
+   - no duplicated CLI blocks across runtime rules
+   - Skills do not restate the full recording contract when a pointer suffices
+6. Install the plugin locally and inspect the active context in new chats.
+7. Test a scenario matrix before release.
+
+## Scenario matrix
+
+| Prompt | Expected rules | Expected result |
+|---|---|---|
+| “Fix this failing test” | core only | No learning write |
+| “What is HTTP keep-alive?” | core + concept capture + recording | One transferable `want` |
+| “What does `MediaUploadEngineMixin` do?” | core + project boundary | Repo answer, no global write |
+| “Test whether I understand Cursor rules” | core; `study-probe` Skill | Evidence-based assessment |
+| “Build a deep Docker study track” | core; `study-deep` Skill | Research delegated to subagent |
+| “Add this topic to my queue” | core + recording | Explicit `want` |
+
+## Success criteria
+
+- Only one small runtime rule is always applied.
+- Ordinary coding requests do not load persistence or project-learning policy.
+- Conceptual questions still produce exactly one transferable queue item.
+- Repository-specific questions never pollute the global profile.
+- Skills remain the sole owners of multi-step study workflows.
+- The active-context panel confirms expected rules for every scenario above.
+- Rule behavior has no contradiction about what qualifies as `covered`.
+- Each overlapping concern has a single canonical owner (rule or skill), with
+  at most a short pointer elsewhere.
+
+## Recommendation
+
+Proceed with the four-rule runtime split, but do not add every possible rule at
+once. Implement the core and concept-capture split first, test it in real chats,
+then add recording and project-boundary rules only where observed behavior
+requires them.
+
+This follows Cursor's guidance to start simple and codify repeated failures,
+while still removing the current monolithic always-on context cost.
+
+**Status note:** after extracting `tutor-core`, the three intelligent rules were
+added together (step 2) so capture, recording, and project boundary could be
+validated as one coherent set. The next focus is step 3 — the Skill/rule
+ownership pass — then a single evidence policy for `covered` (step 4).
