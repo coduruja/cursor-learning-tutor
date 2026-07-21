@@ -351,10 +351,27 @@ at most a short reminder.
 
 ## Runtime rules vs maintainer rules
 
-Two different audiences must not be mixed:
+The plugin has two rule locations that look alike but serve different audiences
+and must not be mixed.
 
-1. `rules/` — shipped by the plugin and applied to users of Learning Tutor.
-2. `.cursor/rules/` — guidance for contributors editing this repository.
+| | `rules/` (runtime) | `.cursor/rules/` (maintainer) |
+|---|---|---|
+| Audience | Users of Learning Tutor | Contributors editing this repository |
+| Shipped? | Yes — packaged via the plugin manifest into every project | No — lives only in this repo, never distributed |
+| Purpose | Tutor behavior (calibration, capture, recording, boundary) | Development conventions for this codebase |
+| Example | `tutor-core.mdc`, `learning-recording.mdc` | “when editing `hooks/**/*.py`, preserve profile migrations” |
+
+How to tell which one a rule belongs to: ask *who should feel this rule?* If it
+changes how the tutor behaves for a user, it goes in `rules/`. If it only guides
+someone editing this repository, it goes in `.cursor/rules/`.
+
+Why not mix them:
+
+- A maintainer rule placed in `rules/` ships to every user, adding irrelevant
+  context (“when editing hooks, preserve migrations”) and possibly wrong
+  behavior in their projects.
+- A tutor rule placed in `.cursor/rules/` only applies inside this repository,
+  so the tutor silently disappears in every other project the user opens.
 
 Optional maintainer-only rules, added only if the same mistakes recur while
 developing the plugin:
