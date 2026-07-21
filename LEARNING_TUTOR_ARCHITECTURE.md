@@ -303,8 +303,9 @@ deliberate profile updates.
 - No marker fallback if CLI is missing — **resolved by Decision 9:** emit a
   `LEARNING-WANT` marker when the CLI is unavailable (no covered marker).
 - No transferability check — the user can force-log a repo-local symbol into
-  the global profile. That may be acceptable for an explicit override, but it
-  is undocumented as such.
+  the global profile — **resolved by Decision 10:** `study-log` applies
+  `project-learning-boundary`; local topics are generalized or kept in the
+  project sheet, never written raw to the global profile.
 - Empty-profile onboarding overlap with `study-plan` — **resolved by Decision 2**
   (`study-plan` becomes read-only; `study-log` owns `init` + manual `want`).
 
@@ -708,11 +709,39 @@ Implementation:
 4. Scenarios: CLI missing + “study X later” → `LEARNING-WANT` marker emitted;
    no `covered` marker is ever produced.
 
-### Open questions (Skills) — undecided, keep visible
+#### Decision 10 — `study-log` obeys `project-learning-boundary`
 
-These are recorded for later decisions. Do not treat them as resolved:
+`study-log` is not an exception to the transferability boundary. Like the probe
+(Decision 5), it **applies** `project-learning-boundary.mdc` before writing to
+the global profile — there is no silent repo-local escape hatch.
 
-10. **Force-log of repo-local topics via `study-log`:** Allow, warn, or block?
+Behavior for a `study-log` write:
+
+- Topic is transferable → write the global `want` normally.
+- Topic is a repo-local symbol / path / env var → generalize to the broader
+  transferable concept and queue that concept, not the raw symbol.
+- Cannot be generalized → offer to keep it in `.cursor/learning/project.md`
+  instead of the global profile; do not write it globally.
+
+This makes the boundary rule the single owner of the local-vs-global test across
+every write path (capture, plan, probe, log). It also completes Decision 1: log
+neither attests `covered` nor bypasses transferability.
+
+Implementation:
+
+1. `study-log/SKILL.md`: add a one-line directive to apply the
+   project-learning-boundary test before any global `want`; keep the boundary
+   policy itself in the rule (no copy).
+2. On a repo-local topic, generalize and confirm the concept with the user, or
+   route it to the project sheet.
+3. Scenarios: `/study-log` + “queue `MediaUploadEngineMixin`” → offer the
+   generalized concept (mixin composition) or project sheet; never write the
+   raw symbol to the global profile.
+
+### Open questions (Skills)
+
+All Skills open questions raised in this audit are now decided (Decisions 1–10).
+New questions should be appended here as they arise.
 
 ~~2. Onboarding owner~~ → **Decision 2**
 ~~3. Auto-invoke collision~~ → **Decision 3**
@@ -722,6 +751,7 @@ These are recorded for later decisions. Do not treat them as resolved:
 ~~7. Deep → probe handoff~~ → **Decision 7** (always probe after deep; also on self-attestation)
 ~~8. Probe light mode / question count~~ → **Decision 8** (always 5–10 questions per topic)
 ~~9. Marker fallback in Skills~~ → **Decision 9** (emit `LEARNING-WANT` marker; no covered marker)
+~~10. Force-log of repo-local topics~~ → **Decision 10** (`study-log` obeys the boundary rule)
 
 ## What should move out of rules
 
@@ -795,21 +825,103 @@ mistakes observed while developing this repository.
 
 ## Migration sequence
 
+### Already done (rules foundation)
+
 1. ~~Extract the minimal always-on `tutor-core.mdc`.~~ **Done**
 2. ~~Add the three intelligent runtime rules with specific descriptions.~~ **Done**
-3. Remove duplicated workflows from runtime rules; keep them in Skills.
-   (Ownership pass using the overlap map and the Skills audit open questions —
-   decide per item, then edit; leave undecided items listed in the doc.)
-4. Define one evidence policy for `covered` before changing recording behavior.
-   **Decision made:** only a one-topic `study-probe` with at least 50% correct
-   on that topic can attest new knowledge. Multi-topic probes are forbidden.
-5. Add automated checks for:
-   - valid `.mdc` frontmatter
-   - at most one small `alwaysApply: true` runtime rule
-   - no duplicated CLI blocks across runtime rules
-   - Skills do not restate the full recording contract when a pointer suffices
-6. Install the plugin locally and inspect the active context in new chats.
-7. Test a scenario matrix before release.
+3. ~~Skills ownership decisions (Decisions 1–10).~~ **Done** (documented; not yet
+   coded into Skills/rules bodies)
+
+### Unified implementation plan (rules + Skills)
+
+Implement in this order. Later steps assume earlier contracts are already true,
+so evidence, recording, and boundary do not fight each other mid-refactor.
+
+#### Phase A — freeze the write contracts (rules first)
+
+**Why first:** every Skill change will point at these rules. If Skills change
+before the rules match Decisions 1/4/5/9, the agent still follows outdated
+`covered` / marker / CLI text.
+
+| Step | Change | Decisions |
+|---|---|---|
+| A1 | Update `learning-recording.mdc`: `covered` only from one-topic probe evidence; retire `LEARNING-LOG`; keep `LEARNING-WANT` marker fallback + CLI-missing behavior; keep feedback lines | 1, 1A, 4, 9 |
+| A2 | Keep `project-learning-boundary.mdc` as the sole transferability policy (no Skill may restate the full gate) | 5, 10 |
+| A3 | Update `tutor-core.mdc`: empty profile → `/study-log`; self-attestation / “finished studying” → `study-probe`; deep study still routes to `study-deep` | 2, 7 |
+
+**Exit criteria:** only one Always rule; recording and boundary text match the
+decisions; no Skill edited yet except what A3 needs in core routing.
+
+#### Phase B — make `study-probe` the only path to `covered`
+
+**Why next:** Decisions 1/1A/8 are the new center of gravity. Log, deep, and plan
+all hand off to probe; probe must be correct before those handoffs land.
+
+| Step | Change | Decisions |
+|---|---|---|
+| B1 | Rewrite `study-probe` description (Decision 3 + self-attestation + post-deep triggers from Decision 7) | 3, 7 |
+| B2 | Rewrite `study-probe/SKILL.md`: exactly one topic; 5–10 questions; wait; ≥50% → `covered`; else `want`; no multi-topic exam | 1, 1A, 8 |
+| B3 | Rewrite `assessment-rubric.md`: point at `project-learning-boundary` for the transferability test; keep question design, examples, scoring, 5–10 range, ≥50% | 5, 8 |
+| B4 | Replace duplicated `want`/`covered` CLI blocks with a pointer to the recording policy; keep `project-drop` / `project-sync --probe-summary` | 4 |
+
+**Exit criteria:** `/study-probe` and “I think I understand X” run a one-topic
+5–10 question probe; self-report never writes `covered`.
+
+#### Phase C — align the other Skills to the new contracts
+
+**Why after probe:** each Skill either routes to probe, writes only `want`/`init`,
+or stays read-only. Doing this before Phase B would leave broken handoffs.
+
+| Step | Change | Decisions |
+|---|---|---|
+| C1 | `study-log`: route “I learned X” → one-topic probe; keep `init` + manual `want`; apply boundary before global writes; marker fallback when CLI missing; pointer to recording policy (no `covered`/`want` CLI copy) | 1, 2, 4, 9, 10 |
+| C2 | `study-plan`: remove onboarding `init`/`want`; empty profile → point to `/study-log`; no gap auto-`want`; tighten description (Decision 3); at most one-line boundary reminder; keep show / project-show / missing-sheet sync | 2, 3, 5 |
+| C3 | `study-deep`: after the track, **always** hand off to one-topic `study-probe`; state that finishing the track is not evidence; optional `want` via recording policy if not queued | 4, 7 |
+
+**Exit criteria:** empty `/study-plan` writes nothing; `/study-log` cannot
+force-log raw repo symbols; `/study-deep` always ends in a probe.
+
+#### Phase D — dedupe verification and hooks consistency
+
+**Why near the end:** catch leftover copies and hook behavior that still assumes
+the old world (`LEARNING-LOG` = covered).
+
+| Step | Change | Decisions |
+|---|---|---|
+| D1 | Grep/assert: no `cli.py want` / `cli.py covered` outside `learning-recording.mdc` | 4 |
+| D2 | Grep/assert: no full transferability gate copy outside `project-learning-boundary.mdc` (Skills/rubric may only point + examples) | 5 |
+| D3 | Update `afterAgentResponse` / capture hooks if they still treat `LEARNING-LOG` as covered; markers → `want` only | 1, 9 |
+| D4 | Automated checks: valid `.mdc` frontmatter; at most one `alwaysApply: true` runtime rule; the two greps above | migration checks |
+
+**Exit criteria:** checks pass; hooks agree with Decision 9.
+
+#### Phase E — install, scenario matrix, release notes
+
+| Step | Change |
+|---|---|
+| E1 | Install the plugin locally; inspect active rules/context on ordinary coding vs learning turns |
+| E2 | Run the full scenario matrix (rules + Skills tables below) |
+| E3 | Bump plugin version + CHANGELOG summarizing the evidence policy and Skill/rule ownership |
+| E4 | Optional: maintainer `.cursor/rules/` only if the same mistakes keep recurring while editing |
+
+**Do not reorder** A → B → C casually. Especially do not:
+
+- make `study-log` route to probe before probe is one-topic / 5–10 / ≥50%
+- strip CLI copies from Skills before `learning-recording` has the marker +
+  evidence text
+- teach the rubric a new gate while `project-learning-boundary` is still the
+  intended sole owner
+
+### Historical migration notes (kept)
+
+Older wording below is preserved for context; the phased plan above is the
+source of truth for remaining work:
+
+- Remove duplicated workflows from runtime rules; keep them in Skills —
+  largely satisfied by the rules split + Decisions 2–5; finish in Phases B–C.
+- Define one evidence policy for `covered` — decided (1/1A/8); implement in
+  Phases A–B.
+- Add automated checks / install / scenario matrix — Phases D–E.
 
 ## Scenario matrix
 
@@ -863,29 +975,15 @@ mistakes observed while developing this repository.
 
 ## Recommendation
 
-Proceed with the four-rule runtime split, but do not add every possible rule at
-once. Implement the core and concept-capture split first, test it in real chats,
-then add recording and project-boundary rules only where observed behavior
-requires them.
+Rules foundation (Always `tutor-core` + three intelligent rules) is in place.
+Skills decisions 1–10 are locked in this document. **Do not implement Skills in
+random order** — follow Phases A → E in the unified implementation plan so
+evidence, recording, and boundary contracts land before the Skills that depend
+on them.
 
 This follows Cursor's guidance to start simple and codify repeated failures,
-while still removing the current monolithic always-on context cost.
+while still removing the old monolithic always-on context cost.
 
-**Status note:** after extracting `tutor-core`, the three intelligent rules were
-added together (step 2) so capture, recording, and project boundary could be
-validated as one coherent set. A Skills-only inspection pass is recorded in
-this document. Decisions 1 and 1A lock the evidence policy: only a one-topic
-`study-probe` with ≥50% correct on that topic can write `covered`. Decision 2
-makes `study-plan` read-only and gives empty-profile `init` / manual `want` to
-`study-log`. Decision 3 keeps plan/probe auto-invocable but separates their
-descriptions into passive snapshot vs explicit assessment intent. Decision 4
-makes `learning-recording` the single write contract — Skills point at it and
-keep only flow-specific commands. Decision 5 makes
-`project-learning-boundary` the owner of the transferability test; the probe
-rubric applies that rule instead of redefining it. Decision 7 requires a
-one-topic `study-probe` after every `study-deep` track and on self-attestation
-phrases (“I think I understand”, “finished studying”, …). Decision 8 locks
-every one-topic probe to 5–10 questions (no light mode). Decision 9 keeps a
-marker fallback (`LEARNING-WANT` only) when the CLI is missing. The only
-remaining open Skill question is Q10 (force-log of repo-local topics). Agents/
-hooks inspection is still deferred.
+**Status note:** Decisions 1–10 are complete. Next concrete work starts at
+**Phase A1** (`learning-recording.mdc`). Agents/hooks inspection is deferred
+until Phase D3 unless a probe/recording change forces it earlier.
