@@ -19,6 +19,7 @@ BOUNDARY = RULES / "project-learning-boundary.mdc"
 
 CLI_WRITE_RE = re.compile(r"cli\.py\s+(want|covered)\b")
 GATE_PHRASE = "Would this still be useful without opening this repository?"
+FRONTMATTER_RE = re.compile(r"\A---\n(.*?)\n---\n", re.DOTALL)
 
 
 def iter_text_files(*dirs: Path):
@@ -63,16 +64,55 @@ def check_transferability_gate() -> list[str]:
     return errors
 
 
+def check_mdc_frontmatter() -> list[str]:
+    """Valid .mdc frontmatter and exactly one alwaysApply: true (tutor-core)."""
+    errors = []
+    always_apply_true: list[Path] = []
+    for path in sorted(RULES.glob("*.mdc")):
+        text = path.read_text(encoding="utf-8")
+        match = FRONTMATTER_RE.match(text)
+        if not match:
+            errors.append(f"{path.relative_to(ROOT)}: missing YAML frontmatter")
+            continue
+        fm = match.group(1)
+        if "description:" not in fm:
+            errors.append(
+                f"{path.relative_to(ROOT)}: frontmatter missing description"
+            )
+        if "alwaysApply:" not in fm:
+            errors.append(
+                f"{path.relative_to(ROOT)}: frontmatter missing alwaysApply"
+            )
+        if re.search(r"alwaysApply:\s*true", fm):
+            always_apply_true.append(path)
+    if len(always_apply_true) != 1:
+        names = ", ".join(p.name for p in always_apply_true) or "(none)"
+        errors.append(
+            f"expected exactly one alwaysApply: true runtime rule, found "
+            f"{len(always_apply_true)}: {names}"
+        )
+    elif always_apply_true[0].name != "tutor-core.mdc":
+        errors.append(
+            f"alwaysApply: true must be tutor-core.mdc, found "
+            f"{always_apply_true[0].name}"
+        )
+    return errors
+
+
 def main() -> int:
     errors: list[str] = []
     errors.extend(check_cli_writes())
     errors.extend(check_transferability_gate())
+    errors.extend(check_mdc_frontmatter())
     if errors:
         print("Architecture checks failed:")
         for err in errors:
             print(f"  - {err}")
         return 1
-    print("Architecture checks passed (CLI write + transferability gate).")
+    print(
+        "Architecture checks passed "
+        "(CLI write, transferability gate, rule frontmatter)."
+    )
     return 0
 
 
