@@ -1,6 +1,24 @@
 # Assessment rubric
 
-Use evidence of understanding, not exposure.
+Use evidence of understanding, not exposure. A valid probe covers **exactly one
+topic** with **5 to 10** questions; fewer than five questions must not write
+`covered`.
+
+## Transferability
+
+Before selecting or scoring a topic, apply the Learning Tutor
+`project-learning-boundary` transferability test (sole owner of that policy).
+Do not redefine the gate here.
+
+Probe-local examples of local detail → broader concept:
+
+| Local detail | Transferable concept |
+|---|---|
+| `LOCAL_BOT_API_URL` | Service discovery or environment-based configuration |
+| `MediaUploadEngineMixin` | Mixin composition and separation of responsibilities |
+| `ConnectTimeout` in one call | Connection establishment vs connection reuse |
+
+If the starting point is local, rename to the broader concept before testing.
 
 ## Question design
 
@@ -18,27 +36,13 @@ Avoid:
 - Leading yes/no questions
 - Treating tool usage or having read an explanation as proof of understanding
 
-## Transferability gate
-
-Before testing or recording a topic, ask:
-
-> Would this knowledge still be useful without opening the current repository?
-
-- **Yes** → eligible for the global profile
-- **No** → keep as project context
-- **Partly** → rename to the broader transferable concept before testing
-
-Examples:
-
-| Local detail | Transferable concept |
-|---|---|
-| `LOCAL_BOT_API_URL` | Service discovery or environment-based configuration |
-| `MediaUploadEngineMixin` | Mixin composition and separation of responsibilities |
-| `ConnectTimeout` in one call | Connection establishment vs connection reuse |
-
 ## Scoring
 
-### Covered
+Score each answer, then apply the **≥50%** bar across this topic’s questions.
+Only when at least half are covered-quality may the topic be recorded as
+`covered`.
+
+### Covered (per answer)
 
 The answer is substantially correct and includes at least one of:
 
@@ -47,22 +51,28 @@ The answer is substantially correct and includes at least one of:
 - Correct application to a new scenario
 - A meaningful trade-off or limitation
 
-Record `covered` with a short evidence note. Choose level:
+Choose level when the topic passes the 50% bar:
 
 - `beginner`: explains the core idea correctly
 - `intermediate`: applies it and explains when/why
 - `advanced`: reasons about trade-offs, failure modes, or design alternatives
 
-### Partial
+### Partial (per answer)
 
 The core intuition is present but the answer has an important gap, confusion, or
-cannot transfer to a new scenario. Keep/add it in the queue with a concise
-reinforcement note. Do not record `covered`.
+cannot transfer to a new scenario. Counts against the 50% bar. Do not treat as
+covered evidence.
 
-### Gap
+### Gap (per answer)
 
 The user says they do not know, guesses without reasoning, or gives a materially
-incorrect answer. Add it to the queue with a concise gap note.
+incorrect answer. Counts against the 50% bar.
+
+### Topic outcome
+
+- ≥50% covered-quality answers → record `covered` for this topic with an
+  evidence note.
+- Otherwise keep/add `want` for the topic; do not record `covered`.
 
 ## Evidence note
 
