@@ -11,7 +11,6 @@ Usage (from repo root):
 from __future__ import annotations
 
 import importlib.util
-import io
 import json
 import os
 import re
@@ -30,11 +29,15 @@ AGENT = ROOT / "agents" / "study-researcher.md"
 STUDY_DEEP = ROOT / "skills" / "study-deep" / "SKILL.md"
 FRONTMATTER_RE = re.compile(r"\A---\n(.*?)\n---\n", re.DOTALL)
 
+if str(HOOKS) not in sys.path:
+    sys.path.insert(0, str(HOOKS))
+
 
 def load_module(path: Path, name: str):
     spec = importlib.util.spec_from_file_location(name, path)
     assert spec is not None and spec.loader is not None
     mod = importlib.util.module_from_spec(spec)
+    sys.modules[name] = mod
     spec.loader.exec_module(mod)
     return mod
 
@@ -42,9 +45,7 @@ def load_module(path: Path, name: str):
 def load_lib_with_home(home: Path):
     """Load lib_profile with LEARNING paths under a fake HOME."""
     with mock.patch.dict(os.environ, {"HOME": str(home)}):
-        # Re-import under a unique name so Path constants bind to patched HOME.
         lib = load_module(HOOKS / "lib_profile.py", f"lib_profile_{home.name}")
-        # Force re-bind in case module was cached somehow — rewrite constants.
         learning = home / ".cursor" / "learning"
         lib.LEARNING_DIR = learning
         lib.PROFILE_PATH = learning / "profile.md"
@@ -72,12 +73,19 @@ class WantRegexTests(unittest.TestCase):
         self.assertEqual(matches[0].group("topic"), "HTTP keep-alive")
         self.assertIsNone(matches[0].group("note"))
 
-    def test_empty_topic_still_matches_regex(self) -> None:
-        """Current defect: empty topic matches; add_want later raises."""
+    def test_empty_topic_skipped_by_iterator(self) -> None:
         text = '<!-- LEARNING-WANT topic="" note="x" -->'
-        matches = list(self.capture.WANT_RE.finditer(text))
-        self.assertEqual(len(matches), 1)
-        self.assertEqual(matches[0].group("topic"), "")
+        self.assertEqual(list(self.capture.iter_want_markers(text)), [])
+
+    def test_empty_then_valid_keeps_valid(self) -> None:
+        text = (
+            '<!-- LEARNING-WANT topic="" note="bad" -->\n'
+            '<!-- LEARNING-WANT topic="Docker" note="ok" -->'
+        )
+        self.assertEqual(
+            list(self.capture.iter_want_markers(text)),
+            [("Docker", "ok")],
+        )
 
     def test_malformed_missing_topic_ignored(self) -> None:
         text = "<!-- LEARNING-WANT note=\"only note\" -->"
@@ -88,30 +96,32 @@ class WantRegexTests(unittest.TestCase):
         self.assertEqual(list(self.capture.WANT_RE.finditer(text)), [])
 
 
-class StdinTextTests(unittest.TestCase):
+class HookIoTextTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:
-        cls.capture = load_module(CAPTURE, "capture_learning_stdin")
-
-    def _read(self, payload: bytes) -> str:
-        fake_stdin = mock.Mock()
-        fake_stdin.buffer = io.BytesIO(payload)
-        with mock.patch.object(self.capture.sys, "stdin", fake_stdin):
-            return self.capture.read_stdin_text()
+        cls.hook_io = load_module(HOOKS / "hook_io.py", "hook_io_under_test")
 
     def test_official_after_agent_response_text_field(self) -> None:
         body = 'hi <!-- LEARNING-WANT topic="Docker" -->'
-        raw = json.dumps({"text": body}).encode()
-        self.assertIn("Docker", self._read(raw))
-        self.assertEqual(self._read(raw), body)
+        data = {"text": body}
+        self.assertEqual(
+            self.hook_io.extract_response_text(data, b""),
+            body,
+        )
 
     def test_compat_response_key(self) -> None:
-        raw = json.dumps({"response": "LEARNING-WANT topic=\"API\""}).encode()
-        self.assertIn("API", self._read(raw))
+        data = {"response": 'LEARNING-WANT topic="API"'}
+        self.assertIn("API", self.hook_io.extract_response_text(data, b""))
 
     def test_non_json_passthrough(self) -> None:
         raw = b'plain LEARNING-WANT topic="HTTP"'
-        self.assertEqual(self._read(raw), raw.decode())
+        self.assertEqual(self.hook_io.extract_response_text(None, raw), raw.decode())
+
+    def test_workspace_roots_extraction(self) -> None:
+        roots = self.hook_io.workspace_roots_from_payload(
+            {"workspace_roots": ["/tmp/a", 1, ""]}
+        )
+        self.assertEqual(roots, ["/tmp/a"])
 
 
 class CaptureHookSubprocessTests(unittest.TestCase):
@@ -147,22 +157,28 @@ class CaptureHookSubprocessTests(unittest.TestCase):
             self.assertIn("Docker Compose", profile)
             self.assertIn("[ ]", profile)
 
-    def test_empty_topic_fail_open_no_crash(self) -> None:
+    def test_empty_topic_skipped_with_stderr(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             home = Path(tmp)
             payload = json.dumps(
-                {"text": '<!-- LEARNING-WANT topic="" note="bad" -->'}
+                {
+                    "text": (
+                        '<!-- LEARNING-WANT topic="" note="bad" -->\n'
+                        '<!-- LEARNING-WANT topic="HTTP" -->'
+                    )
+                }
             ).encode()
             result = self._run(home, payload)
             self.assertEqual(result.returncode, 0)
             out = json.loads(result.stdout.decode())
             self.assertTrue(out.get("continue"))
-            profile_path = home / ".cursor" / "learning" / "profile.md"
-            # install_cli may create dirs; empty topic must not add a queue line
-            if profile_path.exists():
-                text = profile_path.read_text(encoding="utf-8")
-                self.assertNotIn('topic=""', text)
-                self.assertNotIn("- [ ]", text)
+            stderr = result.stderr.decode()
+            self.assertIn("empty topic", stderr)
+            profile = (home / ".cursor" / "learning" / "profile.md").read_text(
+                encoding="utf-8"
+            )
+            self.assertIn("HTTP", profile)
+            self.assertNotIn("- [ ] bad", profile)
 
     def test_no_marker_still_fail_open_json(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
@@ -196,7 +212,6 @@ class InjectHookSubprocessTests(unittest.TestCase):
                 "# Learning Tutor — project learning sheet\n\n## Stack\n\n- Next.js\n",
                 encoding="utf-8",
             )
-            # Pre-create a non-empty global profile
             learning = home / ".cursor" / "learning"
             learning.mkdir(parents=True)
             learning.joinpath("profile.md").write_text(
@@ -219,6 +234,34 @@ class InjectHookSubprocessTests(unittest.TestCase):
             self.assertTrue((learning / "cli.py").is_file())
             self.assertTrue((learning / "lib_profile.py").is_file())
 
+    def test_session_start_uses_workspace_roots(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            base = Path(tmp)
+            home = base / "home"
+            home.mkdir()
+            # Process cwd is empty; sheet lives only under workspace_roots
+            empty_cwd = base / "empty_cwd"
+            empty_cwd.mkdir()
+            workspace = base / "real_workspace"
+            sheet_dir = workspace / ".cursor" / "learning"
+            sheet_dir.mkdir(parents=True)
+            sheet_dir.joinpath("project.md").write_text(
+                "# Learning Tutor — project learning sheet\n\n## Stack\n\n- Prisma\n",
+                encoding="utf-8",
+            )
+            payload = json.dumps(
+                {
+                    "session_id": "t",
+                    "is_background_agent": False,
+                    "composer_mode": "agent",
+                    "workspace_roots": [str(workspace)],
+                }
+            ).encode()
+            result = self._run(home, empty_cwd, stdin=payload)
+            self.assertEqual(result.returncode, 0, result.stderr.decode())
+            ctx = json.loads(result.stdout.decode()).get("additional_context", "")
+            self.assertIn("Prisma", ctx)
+
     def test_session_start_empty_profile_message(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             base = Path(tmp)
@@ -231,23 +274,18 @@ class InjectHookSubprocessTests(unittest.TestCase):
             out = json.loads(result.stdout.decode())
             self.assertIn("profile is still empty", out.get("additional_context", ""))
 
-    def test_session_start_fail_open_on_broken_lib(self) -> None:
-        """If main crashes before print, outer handler still emits continue."""
+    def test_session_start_fail_open_on_broken_home(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             base = Path(tmp)
-            home = base / "home"
-            home.mkdir()
             workspace = base / "ws"
             workspace.mkdir()
-            # Point at a copy of inject that loads a missing lib by patching via env
-            # Simpler: run inject with HOME that cannot be written — still should continue.
-            # Use a file as HOME to force expanduser path failures inside ensure_dir.
             bad_home = base / "not_a_dir"
             bad_home.write_text("x", encoding="utf-8")
             result = self._run(bad_home, workspace)
             self.assertEqual(result.returncode, 0)
             out = json.loads(result.stdout.decode())
             self.assertTrue(out.get("continue"))
+            self.assertIn("learning-tutor:", result.stderr.decode())
 
 
 class LibProfileTempHomeTests(unittest.TestCase):
@@ -272,6 +310,39 @@ class LibProfileTempHomeTests(unittest.TestCase):
             shown = lib.project_show(str(project_root))
             self.assertIn("Next.js", shown)
             self.assertIn("App Router", shown)
+
+    def test_resolve_project_root_precedence(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            home = Path(tmp) / "home"
+            home.mkdir()
+            explicit = Path(tmp) / "explicit"
+            via_roots = Path(tmp) / "via_roots"
+            explicit.mkdir()
+            via_roots.mkdir()
+            lib = load_lib_with_home(home)
+            root = lib.resolve_project_root(
+                cwd=str(explicit),
+                workspace_roots=[str(via_roots)],
+            )
+            self.assertEqual(root, explicit.resolve())
+            root2 = lib.resolve_project_root(workspace_roots=[str(via_roots)])
+            self.assertEqual(root2, via_roots.resolve())
+
+    def test_find_project_sheet_ancestor_walk(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            home = Path(tmp) / "home"
+            home.mkdir()
+            root = Path(tmp) / "repo"
+            nested = root / "apps" / "web"
+            nested.mkdir(parents=True)
+            sheet = root / ".cursor" / "learning" / "project.md"
+            sheet.parent.mkdir(parents=True)
+            sheet.write_text("# sheet\n", encoding="utf-8")
+            lib = load_lib_with_home(home)
+            found = lib.find_project_sheet(nested, walk_ancestors=True)
+            self.assertEqual(found.resolve(), sheet.resolve())
+            missing = lib.find_project_sheet(nested, walk_ancestors=False)
+            self.assertIsNone(missing)
 
     def test_truncate_for_inject(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
@@ -308,5 +379,4 @@ def main() -> int:
 
 
 if __name__ == "__main__":
-    # Avoid unittest discovering this file's helpers as tests when run directly.
     raise SystemExit(main())

@@ -122,6 +122,7 @@ def check_hooks_json(plugin: dict) -> None:
         "capture_learning.py",
         "learning_cli.py",
         "lib_profile.py",
+        "hook_io.py",
     }
     present = {p.name for p in (ROOT / "hooks").glob("*.py")}
     missing = sorted(required_scripts - present)

@@ -116,18 +116,14 @@ exclusive.
 **Risk:** users see missing profile context or missing queue writes with no
 diagnostic evidence.
 
-### 5. Marker parsing accepts invalid input
+### 5. Marker parsing accepts invalid input — mitigated in Phase C
 
-The `LEARNING-WANT` regex permits an empty topic. `add_want` later rejects it,
-and the top-level Hook handler hides that exception.
+The `LEARNING-WANT` regex still matches `topic=""`, but `iter_want_markers`
+skips empty topics with a stderr diagnostic and continues with later markers.
+`read`/`extract` helpers prefer official `text` and keep temporary compat keys.
 
-`read_stdin_text` also accepts several speculative top-level fields. This makes
-the accepted Hook payload contract broader and less explicit than necessary.
-
-**Root cause:** permissive parsing was used as compatibility protection without
-validation at the parser boundary.
-
-**Risk:** malformed markers and payload changes fail silently.
+**Remaining:** narrowing the public payload contract to `text` only can wait
+until compat keys are unused in the wild.
 
 ### 6. Project discovery has two path semantics
 
@@ -257,13 +253,14 @@ Deliverables:
 
 Exit: current intended behavior is executable and failures are reproducible.
 
-### Phase C — Harden adapters without structural extraction
+### Phase C — Harden adapters without structural extraction — **done**
 
-- Validate markers before calling persistence.
-- Centralize Hook JSON input/output helpers.
-- Preserve fail-open behavior while reporting concise diagnostics to stderr.
-- Unify project-root discovery.
-- Separate CLI installation errors from context-rendering errors.
+Deliverables:
+
+- `hooks/hook_io.py` — shared stdin/JSON helpers, stderr diagnostics, lib loader
+- Hardened `inject_profile.py` / `capture_learning.py` (validate markers; isolate
+  install vs context errors)
+- `lib_profile.resolve_project_root` / `find_project_sheet` (contracts §4)
 
 Exit: malformed inputs and runtime failures are observable and isolated.
 

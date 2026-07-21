@@ -413,14 +413,67 @@ def first_open_queue_topic() -> str:
 # --- Project learning (.cursor/learning/project.md) ---
 
 
-def project_path(cwd: str | Path | None = None) -> Path:
-    root = Path(cwd) if cwd else Path.cwd()
+def resolve_project_root(
+    cwd: str | Path | None = None,
+    workspace_roots: list[str] | None = None,
+) -> Path:
+    """Resolve the project root used for sheet paths.
+
+    Precedence (HOOKS_AGENTS_CONTRACTS.md §4):
+    1. explicit cwd / --cwd
+    2. first existing absolute path in workspace_roots
+    3. Path.cwd()
+    """
+    if cwd is not None and str(cwd).strip():
+        return Path(cwd).expanduser().resolve()
+    for root in workspace_roots or []:
+        path = Path(root).expanduser()
+        if path.is_absolute() and path.exists():
+            return path.resolve()
+    return Path.cwd().resolve()
+
+
+def project_path(
+    cwd: str | Path | None = None,
+    workspace_roots: list[str] | None = None,
+) -> Path:
+    root = resolve_project_root(cwd=cwd, workspace_roots=workspace_roots)
     return root / PROJECT_RELATIVE_PATH
 
 
-def legacy_project_path(cwd: str | Path | None = None) -> Path:
-    root = Path(cwd) if cwd else Path.cwd()
+def legacy_project_path(
+    cwd: str | Path | None = None,
+    workspace_roots: list[str] | None = None,
+) -> Path:
+    root = resolve_project_root(cwd=cwd, workspace_roots=workspace_roots)
     return root / LEGACY_PROJECT_RELATIVE_PATH
+
+
+def find_project_sheet(
+    start: str | Path | None = None,
+    *,
+    workspace_roots: list[str] | None = None,
+    walk_ancestors: bool = False,
+    max_ancestors: int = 8,
+) -> Path | None:
+    """Locate an existing project sheet.
+
+    When walk_ancestors is True (sessionStart injection), search up to
+    max_ancestors parents. CLI writes keep walk_ancestors=False.
+    """
+    cur = resolve_project_root(cwd=start, workspace_roots=workspace_roots)
+    steps = max_ancestors if walk_ancestors else 0
+    for _ in range(steps + 1):
+        for candidate in (
+            cur / PROJECT_RELATIVE_PATH,
+            cur / LEGACY_PROJECT_RELATIVE_PATH,
+        ):
+            if candidate.is_file():
+                return candidate
+        if not walk_ancestors or cur.parent == cur:
+            break
+        cur = cur.parent
+    return None
 
 
 def _existing_project_path(cwd: str | Path | None = None) -> Path:

@@ -71,15 +71,15 @@ Output:
 Docs state: runs as **fire-and-forget**; the agent loop does not wait for or
 enforce a blocking response. Use for session env vars and/or injected context.
 
-### Current plugin behavior (`inject_profile.py`)
+### Current plugin behavior (`inject_profile.py`) — Phase C
 
-| Aspect | Current | Contract decision |
-|---|---|---|
-| Stdin | Read and discarded | Keep until Phase C; later may use `session_id` / mode |
-| Side effect | Copies `learning_cli.py` → `~/.cursor/learning/cli.py` and `lib_profile.py` → `~/.cursor/learning/lib_profile.py` | **Must remain**: Rules/Skills call the stable CLI path |
-| Project sheet | Walk up to 8 parents from `os.getcwd()` for `.cursor/learning/project.md` (or legacy `.cursor/learning-project.md`) | See §4 |
-| Stdout | `{"continue": true, "additional_context": "..."}` | `additional_context` is the supported field; `continue` is **not** in the official sessionStart output — treat as harmless extra until adapters are hardened |
-| Fail-open | On any exception, print `{"continue": true}` | Keep fail-open; Phase C may add stderr diagnostics |
+| Aspect | Behavior |
+|---|---|
+| Stdin | Parsed as JSON when possible; reads `workspace_roots` when present |
+| Side effect | `install_cli` runs in its own try/except; failure logs to stderr and does not block context |
+| Project sheet | `find_project_sheet(..., walk_ancestors=True)` after `resolve_project_root` |
+| Stdout | `{"continue": true, "additional_context": "..."}` (`continue` kept as fail-open convention) |
+| Fail-open | Outer handler + `hook_io.log_diag` on stderr |
 
 Compatibility note: IDE reports exist where `additional_context` is accepted but
 not always surfaced to the model (race). Do not remove CLI install as a side
@@ -101,43 +101,29 @@ Input:
 
 Output: no fields currently documented for this event (observe-only).
 
-### Current plugin behavior (`capture_learning.py`)
+### Current plugin behavior (`capture_learning.py`) — Phase C
 
-| Aspect | Current | Contract decision |
-|---|---|---|
-| Payload parsing | Prefer top-level string keys `text`, then also `response`, `content`, `message`, `output` | **Canonical field is `text`**; extra keys are temporary compatibility, not a public contract |
-| Markers | Regex `LEARNING-WANT topic="..." note="..."` | Only `want` markers; **no** covered marker; `LEARNING-LOG` retired |
-| Persistence | `lib.add_want(...)` | Marker path writes queue only |
-| Side effect | Re-runs `install_cli()` | Keep until install boundary is explicit |
-| Stdout | `{"continue": true}` | Not in official schema; keep fail-open shape until Phase C |
-| Empty topic | Regex allows `topic=""`; `add_want` raises; exception swallowed | Documented defect; fix in Phase B/C with tests |
+| Aspect | Behavior |
+|---|---|
+| Payload parsing | Canonical `text`; temporary compat keys via `hook_io.extract_response_text` |
+| Markers | Empty topics skipped with stderr diag; valid markers still applied |
+| Persistence | `add_want` per validated topic; per-topic errors do not abort the loop |
+| Side effect | `install_cli` isolated from capture errors |
+| Stdout | `{"continue": true}` |
+| Diagnostics | `learning-tutor: …` on stderr only |
 
 ---
 
-## 4. Project-root discovery (single intended behavior)
+## 4. Project-root discovery (implemented)
 
-Today there are **two** semantics:
+Shared helpers in `lib_profile.py`:
 
-| Entry | Behavior |
-|---|---|
-| `inject_profile._find_project_file` | Walk up to 8 ancestors from `getcwd()` |
-| CLI `project-*` via `lib_profile.project_path(cwd)` | Use `--cwd` if given, else **only** `Path.cwd()` — no ancestor walk |
-
-**Frozen target behavior** (implement in Phase C; do not change callers yet):
-
-1. Prefer explicit `--cwd` when provided (CLI).
-2. Else prefer the first absolute path from Hook stdin `workspace_roots` when
-   present (common envelope on many events; sessionStart event-specific schema
-   currently omits it — verify at Phase B with real payloads).
+1. Prefer explicit `cwd` / `--cwd`.
+2. Else prefer the first existing absolute path in `workspace_roots`.
 3. Else use `Path.cwd()`.
-4. From that root, resolve `.cursor/learning/project.md`, with legacy
-   `.cursor/learning-project.md` as read/migrate fallback.
-5. **Ancestor walk (up to 8)** remains allowed for **injection lookup only**
-   until Phase C unifies helpers; CLI writes must continue to target the
-   resolved project root, not a surprise parent, unless `--cwd` says so.
-
-Until Phase C ships a shared helper, treat any mismatch between injected sheet
-and CLI `project-show` as a known risk, not undefined behavior.
+4. Resolve `.cursor/learning/project.md`, with legacy `.cursor/learning-project.md`.
+5. Ancestor walk (up to 8) only when `find_project_sheet(..., walk_ancestors=True)`
+   — used by sessionStart injection. CLI writes keep `walk_ancestors=False`.
 
 ---
 
@@ -258,5 +244,9 @@ python3 scripts/test_hooks_agents.py
 python3 scripts/smoke_install.py
 ```
 
-These exercises document current Hook/CLI/Agent behavior (including known
-defects such as empty `LEARNING-WANT` topics) without changing runtime code.
+## Phase C notes
+
+Adapters are hardened via `hooks/hook_io.py` without splitting `lib_profile.py`.
+Empty `LEARNING-WANT` topics are skipped (stderr) so later valid markers still
+persist. Project discovery helpers live in `lib_profile` (`resolve_project_root`,
+`find_project_sheet`).
