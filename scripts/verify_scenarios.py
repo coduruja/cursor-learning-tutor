@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """Structural verification of the Learning Tutor scenario matrix.
 
-Does not run a live Agent chat. It checks that rules/Skills encode the
-behaviors required by LEARNING_TUTOR_ARCHITECTURE.md scenarios.
+Does not run a live Agent chat. It checks that Rules and Skills encode the
+evidence and ownership contracts in LEARNING_TUTOR_RULES_SKILLS_OWNERSHIP.md.
 
 Usage (from repo root):
   python3 scripts/verify_scenarios.py

@@ -1,10 +1,12 @@
-# Learning Tutor — architecture pocket map
+# Learning Tutor — Rules and Skills ownership map
 
-Current state as of **2.4.0**. Rules/Skills split and evidence policy are
+Current state as of **2.4.0**. The Rules/Skills split and evidence policy are
 implemented. Full history: git / merged PR #1.
 
-This file is a short ownership map for further work (hooks, agents). Detailed
-workflow text lives in `rules/` and `skills/`.
+This file is the short ownership map for the stable tutoring architecture.
+Detailed workflow text lives in `rules/` and `skills/`. Hooks and Agents:
+diagnosis in `HOOKS_AGENTS_REFACTOR_DIAGNOSIS.md`, frozen contracts in
+`HOOKS_AGENTS_CONTRACTS.md`.
 
 ## Rule vs Skill vs Reference
 
@@ -13,9 +15,9 @@ workflow text lives in `rules/` and `skills/`.
 | Short policy (“always / never”) | Multi-step study task | Detail loaded only when a Skill needs it |
 | Shared across flows | Owned by one workflow | e.g. probe rubric |
 
-- **Rule** ≈ write always like this  
-- **Skill** ≈ run this study task end-to-end  
-- **Reference** ≈ read only when probing  
+- **Rule** ≈ write always like this
+- **Skill** ≈ run this study task end-to-end
+- **Reference** ≈ read only when probing
 
 Persistence → Rule (`learning-recording`). Probe scoring → Skill reference.
 
@@ -72,15 +74,6 @@ repo only → `.cursor/rules/`. Do not mix (maintainer noise ships to users;
 tutor rules in `.cursor/rules/` vanish outside this repo).
 
 Maintainer rules: optional; add only when the same editing mistakes recur.
-
-## Hooks / agents (next)
-
-Current shape (to refactor):
-
-- `sessionStart` → `hooks/inject_profile.py` (install CLI + inject profile)
-- `afterAgentResponse` → `hooks/capture_learning.py` (want markers only)
-- `hooks/learning_cli.py` → thin argparse over `hooks/lib_profile.py` (~god module)
-- `agents/study-researcher.md` → used by `study-deep`
 
 ## Verify
 
