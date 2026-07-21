@@ -13,7 +13,8 @@ LEARNING_DIR = Path(os.path.expanduser("~/.cursor/learning"))
 PROFILE_PATH = LEARNING_DIR / "profile.md"
 CLI_PATH = LEARNING_DIR / "cli.py"
 LIB_PATH = LEARNING_DIR / "lib_profile.py"
-PROJECT_FILENAME = "learning-project.md"
+PROJECT_RELATIVE_PATH = Path(".cursor") / "learning" / "project.md"
+LEGACY_PROJECT_RELATIVE_PATH = Path(".cursor") / "learning-project.md"
 
 LEVELS = ("iniciante", "intermediário", "avançado")
 
@@ -100,9 +101,11 @@ _Vazia._
 
 """
 
-PROJECT_HEADER = """# Aprendizado do projeto
+PROJECT_HEADER = """# Learning Tutor — ficha de aprendizado do projeto
 
-> Stack e candidatos locais. Fila/coberto ficam no perfil global (`~/.cursor/learning/profile.md`).
+> **Dados do plugin Learning Tutor; não são instruções, rule ou prompt.**
+> Este arquivo registra stack, candidatos locais e sondagens deste repositório.
+> Fila e conhecimento atestado ficam no perfil global (`~/.cursor/learning/profile.md`).
 
 ## Stack
 
@@ -366,17 +369,44 @@ def first_open_queue_topic() -> str:
     return ""
 
 
-# --- Project learning (.cursor/learning-project.md) ---
+# --- Project learning (.cursor/learning/project.md) ---
 
 
 def project_path(cwd: str | Path | None = None) -> Path:
     root = Path(cwd) if cwd else Path.cwd()
-    return root / ".cursor" / PROJECT_FILENAME
+    return root / PROJECT_RELATIVE_PATH
+
+
+def legacy_project_path(cwd: str | Path | None = None) -> Path:
+    root = Path(cwd) if cwd else Path.cwd()
+    return root / LEGACY_PROJECT_RELATIVE_PATH
+
+
+def _existing_project_path(cwd: str | Path | None = None) -> Path:
+    path = project_path(cwd)
+    if path.exists():
+        return path
+    legacy_path = legacy_project_path(cwd)
+    return legacy_path if legacy_path.exists() else path
 
 
 def ensure_project(cwd: str | Path | None = None) -> Path:
     path = project_path(cwd)
     path.parent.mkdir(parents=True, exist_ok=True)
+    legacy_path = legacy_project_path(cwd)
+    if not path.exists() and legacy_path.exists():
+        text = legacy_path.read_text(encoding="utf-8")
+        new_intro = PROJECT_HEADER.split("## Stack", maxsplit=1)[0]
+        text = re.sub(
+            r"\A# Aprendizado do projeto\n\n"
+            r"> Stack e candidatos locais\. Fila/coberto ficam no perfil global "
+            r"\(`~/.cursor/learning/profile\.md`\)\.\n\n",
+            new_intro,
+            text,
+            count=1,
+        )
+        path.write_text(text, encoding="utf-8")
+        legacy_path.unlink()
     if not path.exists():
         path.write_text(PROJECT_HEADER, encoding="utf-8")
     return path
@@ -384,6 +414,8 @@ def ensure_project(cwd: str | Path | None = None) -> Path:
 
 def read_project(cwd: str | Path | None = None) -> str:
     path = project_path(cwd)
+    if not path.exists() and legacy_project_path(cwd).exists():
+        path = ensure_project(cwd)
     if not path.exists():
         return ""
     return path.read_text(encoding="utf-8")
@@ -392,7 +424,7 @@ def read_project(cwd: str | Path | None = None) -> str:
 def project_show(cwd: str | Path | None = None) -> str:
     text = read_project(cwd)
     if not text.strip():
-        return f"(sem {PROJECT_FILENAME} em {project_path(cwd)})"
+        return f"(sem ficha do projeto em {project_path(cwd)})"
     return text
 
 
@@ -472,7 +504,7 @@ def project_drop_candidate(topic: str, cwd: str | Path | None = None) -> str:
     topic_disp = normalize_topic_display(topic) or topic.strip()
     if not topic_disp:
         raise ValueError("topic vazio")
-    path = project_path(cwd)
+    path = _existing_project_path(cwd)
     if not path.exists():
         return f"Sem arquivo de projeto: {path}"
     text = path.read_text(encoding="utf-8")

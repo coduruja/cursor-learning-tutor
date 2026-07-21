@@ -29,10 +29,12 @@ Não precisa “ligar” o tutor: a rule vem com `alwaysApply: true`.
 
 | Arquivo | Papel |
 |---|---|
-| `.cursor/learning-project.md` | Stack detectada, **candidatos** locais, última sondagem |
+| `.cursor/learning/project.md` | Dados do Learning Tutor: stack, **candidatos** locais e última sondagem |
 
 Candidatos do projeto só viram fila global via pergunta conceitual,
 `/study-probe`, ou pedido explícito.
+O cabeçalho identifica o arquivo como **dados**, não como rule ou instrução
+para outros agentes.
 
 ```bash
 python3 ~/.cursor/learning/cli.py show

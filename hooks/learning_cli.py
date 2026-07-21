@@ -60,7 +60,7 @@ def main() -> None:
     sub.add_parser("show", help="Mostra o perfil")
     sub.add_parser("queue-next", help="Mostra o primeiro item aberto da fila")
 
-    p_ps = sub.add_parser("project-show", help="Mostra .cursor/learning-project.md")
+    p_ps = sub.add_parser("project-show", help="Mostra .cursor/learning/project.md")
     p_ps.add_argument("--cwd", default="", help="Root do projeto (default: cwd)")
 
     p_sync = sub.add_parser("project-sync", help="Atualiza stack/candidatos/sondagem do projeto")

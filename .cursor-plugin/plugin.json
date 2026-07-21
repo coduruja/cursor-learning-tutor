@@ -1,7 +1,7 @@
 {
   "name": "cursor-learning-tutor",
   "displayName": "Learning Tutor",
-  "version": "2.1.0",
+  "version": "2.1.1",
   "description": "Tutor de aprendizado: calibra ao nível, captura ‘o que é X?’ na fila, stack por projeto, /study-probe e /study-deep.",
   "author": { "name": "Pedro Magalhães" },
   "keywords": ["learning", "tutor", "study", "education"],

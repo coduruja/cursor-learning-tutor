@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.1.1
+- Move a ficha local para `.cursor/learning/project.md`, em namespace próprio.
+- Cabeçalho identifica explicitamente a ficha como dados do Learning Tutor,
+  não como rule, prompt ou instrução.
+- CLI migra automaticamente o caminho legado `.cursor/learning-project.md`.
+
 ## 2.1.0
 - Classificação de intent na rule: `concept_gap` → auto-`want`; `repo_local` /
   `agent_task` sem poluir a fila.
