@@ -463,10 +463,10 @@ Exit criteria: checks pass; hooks agree with the want-only marker policy.
 
 | Step | Change |
 |---|---|
-| E1 | Install the plugin locally; inspect active rules/context on ordinary coding vs learning turns |
-| E2 | Run the full scenario matrix below |
-| E3 | Bump the plugin version and update the CHANGELOG (evidence policy + Skill/rule ownership) |
-| E4 | Add maintainer `.cursor/rules/` only if the same editing mistakes recur |
+| E1 | Install the plugin locally; inspect active rules/context on ordinary coding vs learning turns | Done via `scripts/smoke_install.py` (live active-context panel still manual in Cursor) |
+| E2 | Run the full scenario matrix below | Done via `scripts/verify_scenarios.py` (structural); live probe scoring still manual |
+| E3 | Bump the plugin version and update the CHANGELOG (evidence policy + Skill/rule ownership) | Done — 2.4.0 |
+| E4 | Add maintainer `.cursor/rules/` only if the same editing mistakes recur | Deferred — no recurring contributor mistakes observed yet; add only when they appear |
 
 Do not reorder A → B → C. In particular, do not route `study-log` to the probe
 before the probe is one-topic / 5–10 / ≥50%; do not strip CLI copies from Skills
