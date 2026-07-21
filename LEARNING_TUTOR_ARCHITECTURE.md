@@ -333,7 +333,8 @@ project sheet; onboards when the profile is empty.
 - Onboarding overlap with `study-log` — **resolved by Decision 2**.
 - Auto-invoke description includes phrases like “what they know” / “what to
   learn next”, which can collide with probe intent (“verify what they know”) —
-  **open** whether descriptions need sharper disambiguation.
+  **resolved by Decision 3:** keep both auto-invocable but tighten their
+  descriptions around read-only snapshot vs explicit assessment intent.
 - `project-sync` for stack/candidates is here; probe uses `project-sync` only
   for `--probe-summary`. That split is reasonable but not spelled out as an
   ownership contract anywhere except this document.
@@ -513,12 +514,55 @@ Implementation:
 7. Update scenarios: empty `/study-plan` → no writes; empty `/study-log` →
    `init` + first `want`.
 
+#### Decision 3 — disjoint auto-invoke descriptions for plan and probe
+
+Both Skills remain auto-invocable. Their descriptions must identify different
+user intentions rather than sharing generic phrases about “what the user
+knows.”
+
+- `study-plan` activates for a **read-only view of existing learning state**:
+  saved queue, covered topics, progress snapshot, and recommended next study
+  steps. It must explicitly exclude testing, verification, and profile writes.
+- `study-probe` activates only when the user asks to **demonstrate or verify
+  understanding through questions**: test me, quiz me, assess me, check whether
+  I really understand a named topic. It must not activate for a passive request
+  to list saved knowledge or study plans.
+
+Target descriptions:
+
+```yaml
+# study-plan
+description: Provides a read-only snapshot of the Learning Tutor profile:
+  covered topics, saved study queue, progress, and recommended next steps.
+  Use for requests to view existing learning state or decide what to study
+  next. Do not use for quizzes, knowledge verification, or profile writes.
+
+# study-probe
+description: Tests understanding of one named or selected topic by asking
+  practical questions, scoring the answers, and updating the profile from
+  evidence. Use only when the user asks to be tested, quizzed, assessed, or
+  to verify that they truly understand a topic. Do not use for passive profile
+  summaries or study-plan requests.
+```
+
+Implementation:
+
+1. Replace both Skill descriptions with the disjoint descriptions above.
+2. Keep `disable-model-invocation` absent for both; they remain auto-invocable.
+3. Align each Skill body with its negative boundary (`study-plan`: no test or
+   global profile write; `study-probe`: no passive multi-topic snapshot).
+4. Add routing scenarios for ambiguous wording:
+   - “What is saved in my learning profile?” → `study-plan`
+   - “What should I study next?” → `study-plan`
+   - “Test me on Docker” → `study-probe`
+   - “Check whether I really understand Docker” → `study-probe`
+   - “What do I know about Docker?” → ask whether the user wants the saved
+     profile state or an assessment; do not guess between plan and probe.
+
 ### Open questions (Skills) — undecided, keep visible
 
 These are recorded for later decisions. Do not treat them as resolved:
 
-3. **Auto-invoke collision:** Tighten `study-plan` vs `study-probe`
-   descriptions so “what I know” does not ambiguously trigger both?
 5. **Recording contract in Skills:** Replace duplicated CLI blocks with “follow
    `learning-recording`” plus skill-specific extras (`init`, `project-drop`,
    probe-summary), or keep CLI copies for Skills that must work even when the
@@ -536,6 +580,7 @@ These are recorded for later decisions. Do not treat them as resolved:
 10. **Force-log of repo-local topics via `study-log`:** Allow, warn, or block?
 
 ~~2. Onboarding owner~~ → **Decision 2**
+~~3. Auto-invoke collision~~ → **Decision 3**
 ~~4. Plan gaps → queue~~ → **Decision 2** (plan never writes `want`)
 
 ## What should move out of rules
@@ -644,7 +689,10 @@ mistakes observed while developing this repository.
 | Prompt | Expected Skill | Expected result | Open risk |
 |---|---|---|---|
 | `/study-log` + “I learned Docker” | `study-log` → one-topic `study-probe` | No immediate write; ≥50% on Docker → `covered` | — |
-| “What is saved for study?” | `study-plan` | Snapshot; no quiz | Description collision with probe (Q3) |
+| “What is saved for study?” | `study-plan` | Snapshot; no quiz | — |
+| “What should I study next?” | `study-plan` | Read-only next steps | — |
+| “Test me on Docker” | `study-probe` + rubric | One-topic assessment | — |
+| “What do I know about Docker?” | Clarify | Ask snapshot vs assessment | — |
 | `/study-plan` in repo without project sheet | `study-plan` | Optional `project-sync` once | — |
 | `/study-probe` | `study-probe` + rubric | One topic → questions → wait → ≥50% → write | CLI overlap with recording rule (Q5) |
 | `/study-deep` with empty topic | `study-deep` | `queue-next` or ask; subagent track | No probe handoff (Q7) |
@@ -686,5 +734,7 @@ validated as one coherent set. A Skills-only inspection pass is recorded in
 this document. Decisions 1 and 1A lock the evidence policy: only a one-topic
 `study-probe` with ≥50% correct on that topic can write `covered`. Decision 2
 makes `study-plan` read-only and gives empty-profile `init` / manual `want` to
-`study-log`. Remaining open Skill questions still need ownership decisions
-before code changes for step 3/4. Agents/hooks inspection is still deferred.
+`study-log`. Decision 3 keeps plan/probe auto-invocable but separates their
+descriptions into passive snapshot vs explicit assessment intent. Remaining
+open Skill questions still need ownership decisions before code changes for
+step 3/4. Agents/hooks inspection is still deferred.
