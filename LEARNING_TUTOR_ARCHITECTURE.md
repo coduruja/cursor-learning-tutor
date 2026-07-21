@@ -231,7 +231,7 @@ Learning Tutor ships four Skills under `skills/`:
 | Skill | Invocation | Owns |
 |---|---|---|
 | `study-log` | Explicit only (`disable-model-invocation: true`) | Manual corrections / deliberate profile writes |
-| `study-plan` | Explicit or auto from progress intent | Snapshot, onboarding, missing-sheet `project-sync` |
+| `study-plan` | Explicit or auto from progress intent | Read-only snapshot + missing-sheet `project-sync`; no profile writes |
 | `study-probe` | Explicit or auto from assessment intent | Evidence-based quiz, scoring, profile updates from evidence |
 | `study-deep` | Explicit or auto from deep-study intent | Curated track via `study-researcher` subagent |
 
@@ -246,7 +246,8 @@ choose one owner, and leave at most a short pointer in the other place.
 | Transferability / no global pollution | `project-learning-boundary` | `study-plan`, `study-probe` (+ assessment rubric) | **Rule** owns the invariant. Skills may keep a one-line reminder, not a second full policy |
 | Auto-`want` on conceptual questions | `concept-gap-capture` | — | **Rule only** (not a Skill) |
 | Probe scoring / evidence rubric | — | `study-probe` + `references/assessment-rubric.md` | **Skill + reference only** |
-| Snapshot / onboarding / stack `project-sync` | — (removed from rules) | `study-plan` | **Skill only** |
+| Snapshot / stack `project-sync` (read path) | — (removed from rules) | `study-plan` | **Skill only** (no `init` / `want` / `covered`) |
+| Manual queue write + empty-profile `init` | — | `study-log` | **Skill only** |
 | Research delegation to subagent | — | `study-deep` | **Skill only** |
 | Routing to `/study-*` | `tutor-core` (short pointers) | each Skill `description` | **Rule** routes; **Skill** owns the workflow |
 
@@ -304,8 +305,8 @@ deliberate profile updates.
 - No transferability check — the user can force-log a repo-local symbol into
   the global profile. That may be acceptable for an explicit override, but it
   is undocumented as such.
-- Empty-profile onboarding overlaps `study-plan` (both can `init` + first
-  topics). Ownership of onboarding is **not decided**.
+- Empty-profile onboarding overlap with `study-plan` — **resolved by Decision 2**
+  (`study-plan` becomes read-only; `study-log` owns `init` + manual `want`).
 
 ### `study-plan` — findings
 
@@ -327,10 +328,9 @@ project sheet; onboards when the profile is empty.
 - Restates a shortened transferability / anti-promotion policy that also lives
   in `project-learning-boundary.mdc` and again in the probe rubric.
 - “Gaps” in the snapshot can surface transferable concepts that are neither
-  queued nor covered. The Skill does **not** say whether to auto-`want` those
-  gaps. Interaction with `concept-gap-capture` during a plan turn is unclear
-  (**open**).
-- Onboarding overlap with `study-log` (see above).
+  queued nor covered. **Decision 2:** plan must not auto-`want` those gaps —
+  report them and point to `/study-log` (or wait for `concept-gap-capture`).
+- Onboarding overlap with `study-log` — **resolved by Decision 2**.
 - Auto-invoke description includes phrases like “what they know” / “what to
   learn next”, which can collide with probe intent (“verify what they know”) —
   **open** whether descriptions need sharper disambiguation.
@@ -481,16 +481,44 @@ Implementation:
    failed one-topic probe keeps/adds `want`, a passing one-topic probe writes
    `covered` for that topic only, and multi-topic aggregation is forbidden.
 
+#### Decision 2 — `study-plan` is read-only; `study-log` owns first writes
+
+`study-plan` answers “what do I already know?” and “what is queued / what
+should I study next?” from existing state. It does **not** create that state.
+
+If the profile is empty, the plan has nothing useful to report about covered or
+queue — it must not run onboarding questions, `init`, or `want`. Manual
+recording of topics to study (and creating the profile when starting from
+scratch) belongs to `study-log`.
+
+This also closes the former “plan gaps → queue” question: listing a gap in the
+snapshot is not a write. The user (or `concept-gap-capture`) adds it later.
+
+Implementation:
+
+1. Remove the empty-profile onboarding block (`init` + first wants) from
+   `study-plan`.
+2. When the profile is empty, `study-plan` reports that fact in one short
+   message and directs the user to `/study-log` to set level/focus and queue
+   the first topics.
+3. Keep `study-plan` able to `show` / `project-show` and optional missing-sheet
+   `project-sync` (local sheet discovery is not a global learning write).
+4. When listing gaps, only recommend `/study-log` or note that conceptual
+   questions will auto-queue — never call `want` / `covered` / `init` from
+   `study-plan`.
+5. Keep `init` + manual `want` in `study-log` (and route “I learned X” to
+   one-topic `study-probe` per Decisions 1/1A).
+6. Update `tutor-core`: empty profile offers `/study-log` (or short onboarding
+   via that Skill), not `/study-plan` as the write path.
+7. Update scenarios: empty `/study-plan` → no writes; empty `/study-log` →
+   `init` + first `want`.
+
 ### Open questions (Skills) — undecided, keep visible
 
 These are recorded for later decisions. Do not treat them as resolved:
 
-2. **Onboarding owner:** Empty profile → `study-plan`, `study-log`, or either
-   with identical steps?
 3. **Auto-invoke collision:** Tighten `study-plan` vs `study-probe`
    descriptions so “what I know” does not ambiguously trigger both?
-4. **Plan gaps → queue:** May `study-plan` write `want` for listed gaps, or only
-   recommend `/study-log` / wait for `concept-gap-capture`?
 5. **Recording contract in Skills:** Replace duplicated CLI blocks with “follow
    `learning-recording`” plus skill-specific extras (`init`, `project-drop`,
    probe-summary), or keep CLI copies for Skills that must work even when the
@@ -507,6 +535,9 @@ These are recorded for later decisions. Do not treat them as resolved:
    CLI is missing, or is “open a new chat” enough?
 10. **Force-log of repo-local topics via `study-log`:** Allow, warn, or block?
 
+~~2. Onboarding owner~~ → **Decision 2**
+~~4. Plan gaps → queue~~ → **Decision 2** (plan never writes `want`)
+
 ## What should move out of rules
 
 | Current content | Better owner | Reason |
@@ -514,7 +545,7 @@ These are recorded for later decisions. Do not treat them as resolved:
 | Project stack scan and `project-sync` workflow | `study-plan` / `study-probe` Skills | Multi-step, on-demand workflow |
 | Probe scoring | `study-probe/references/assessment-rubric.md` | Detailed reference loaded only when needed |
 | Deep research delegation | `study-deep` Skill | Specialized orchestration |
-| Onboarding questions | `study-plan` and `study-log` Skills | Interactive workflow |
+| Onboarding questions / first `init` | `study-log` Skill | Write path; `study-plan` stays read-only |
 | Full CLI catalog | README / CLI help | Not required in prompt context |
 | Marker implementation details | `learning-recording.mdc` only | Single canonical persistence contract |
 
@@ -617,8 +648,8 @@ mistakes observed while developing this repository.
 | `/study-plan` in repo without project sheet | `study-plan` | Optional `project-sync` once | — |
 | `/study-probe` | `study-probe` + rubric | One topic → questions → wait → ≥50% → write | CLI overlap with recording rule (Q5) |
 | `/study-deep` with empty topic | `study-deep` | `queue-next` or ask; subagent track | No probe handoff (Q7) |
-| Empty profile + `/study-plan` | `study-plan` | Onboarding `init` + wants | Overlap with `study-log` onboarding (Q2) |
-| Empty profile + `/study-log` alone | `study-log` | Onboarding `init` + ask topic | Same as above (Q2) |
+| Empty profile + `/study-plan` | `study-plan` | Report empty; point to `/study-log`; no writes | — |
+| Empty profile + `/study-log` alone | `study-log` | `init` + first `want` | — |
 
 ## Success criteria
 
@@ -653,6 +684,7 @@ while still removing the current monolithic always-on context cost.
 added together (step 2) so capture, recording, and project boundary could be
 validated as one coherent set. A Skills-only inspection pass is recorded in
 this document. Decisions 1 and 1A lock the evidence policy: only a one-topic
-`study-probe` with ≥50% correct on that topic can write `covered`. Remaining
-open Skill questions still need ownership decisions before code changes for
-step 3/4. Agents/hooks inspection is still deferred.
+`study-probe` with ≥50% correct on that topic can write `covered`. Decision 2
+makes `study-plan` read-only and gives empty-profile `init` / manual `want` to
+`study-log`. Remaining open Skill questions still need ownership decisions
+before code changes for step 3/4. Agents/hooks inspection is still deferred.
