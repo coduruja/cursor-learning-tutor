@@ -1,5 +1,13 @@
 # Changelog
 
+## 2.6.0
+- Hook vs Runtime packaging: domain code lives under `runtime/learning/` with
+  `runtime/cli.py`; hooks are thin adapters plus a `lib_profile` shim.
+- Adapters call `render_session_context` / `iter_want_markers` + `add_want`;
+  `hooks.json` sets timeouts (sessionStart 10s, afterAgentResponse 5s).
+- Calibration fallback: Rules/Skills load profile via `cli.py show` when
+  session inject is missing (no product feature cuts).
+
 ## 2.5.0
 - Refactor Hooks/Agents runtime: shared `hook_io` adapters, validated
   `LEARNING-WANT` markers, stderr diagnostics, unified project-root discovery.

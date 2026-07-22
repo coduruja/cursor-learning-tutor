@@ -1,6 +1,6 @@
 # Hooks + runtime refactor plan
 
-Status: Phases 1–6 in progress on `cursor/hooks-agents-refactor` (after 2.5.0).
+Status: Phases 1–6 **done** on `cursor/hooks-agents-refactor` (released as **2.6.0**).
 
 This plan replaces the old hooks diagnosis/contracts docs. It assumes Rules and
 Skills ownership in `LEARNING_TUTOR_RULES_SKILLS_OWNERSHIP.md` stays stable.
@@ -126,12 +126,11 @@ adapters only — not a feature reduction.
 
 Exit: documented decision; no mixed “simplify while moving” work.
 
-### Phase 6 — Release
+### Phase 6 — Release — **done**
 
-- Bump version + CHANGELOG.
-- `python3 scripts/verify_release.py`.
-- Live checklist: new chat install, inject when it works, marker fallback,
-  `/study-deep` → researcher → probe.
+- Bumped to **2.6.0** + CHANGELOG.
+- `python3 scripts/verify_release.py` passes.
+- Live checklist remains manual in Cursor after plugin install.
 
 ## Decision log
 

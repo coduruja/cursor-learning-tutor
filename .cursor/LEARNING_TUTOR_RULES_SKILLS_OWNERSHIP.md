@@ -1,6 +1,6 @@
 # Learning Tutor — ownership map
 
-Current state as of **2.5.0**. Rules/Skills evidence policy landed in 2.4.0.
+Current state as of **2.6.0**. Rules/Skills evidence policy landed in 2.4.0.
 Hooks still mix Cursor adapters with the persistence library; the next cut is
 planned in `HOOKS_RUNTIME_REFACTOR.md`.
 
