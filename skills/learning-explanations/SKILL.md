@@ -14,8 +14,3 @@ Default reply shape:
 2. One concrete example (or short analogy).
 3. Why it matters / how it fits — then edge cases only if needed.
 
-## Constraints
-- One primary concept per reply.
-- Do not load saved learning history to choose depth; adjust only if the user
-  asks for simpler or deeper.
-- Curated resource tracks → `study-deep` (do not research a syllabus here).
