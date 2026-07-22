@@ -14,7 +14,7 @@ when you ask.
 | Probe (quiz) | `/study-probe` |
 | Curated track | `/study-deep <topic>` (no topic → first queue item) |
 
-You do not need to “turn on” the tutor: `rules/tutor-core.mdc` uses
+You do not need to “turn on” the tutor: `rules/learning-tutor.mdc` uses
 `alwaysApply: true`.
 
 ## What lives where
@@ -48,21 +48,25 @@ python3 ~/.cursor/learning/cli.py project-sync --stack "Next.js;Prisma" --candid
 
 | Component | Role |
 |---|---|
-| `rules/tutor-core.mdc` | Always-on: coding vs learning, Skill routing |
-| `rules/learning-recording.mdc` | Persist `want` / `covered` (CLI + markers) |
-| `rules/project-learning-boundary.mdc` | Transferable vs repo-local learning |
-| `skills/concept-gap-capture/` | Classify question vs task; queue missing study topics |
-| `skills/learning-explanations/` | Learner-friendly explanation style (no profile I/O) |
-| `skills/study-log/` | Explicit `init` / `want`; “I learned X” → probe |
+| `rules/learning-tutor.mdc` | The only always-on rule: how to explain, what may go global, what counts as knowing |
+| `skills/concept-gap-capture/` | Explain a concept and queue the gap |
 | `skills/study-plan/` | Read-only snapshot / next steps |
-| `skills/study-probe/` | One-topic evidence-based assessment |
+| `skills/study-probe/` | One-topic assessment — the only writer of `covered` |
 | `skills/study-deep/` | Curated track → always hands off to probe |
+| `skills/study-log/` | Explicit `init` / `want`; “I learned X” → probe |
 | `agents/study-researcher.md` | Research/curation only (readonly) |
 | `hooks/*` | Inject profile/project, install CLI, capture want markers |
 
-Skills can be invoked explicitly with `/study-*`. Cursor may also apply
-`study-plan`, `study-probe`, and `study-deep` automatically when the request
-matches their descriptions. `study-log` is intentionally explicit-only.
+**One rule, five skills.** The rule holds only what must be true on every turn;
+each skill carries the full procedure and the exact commands it needs, so it
+works whether or not anything else got loaded.
+
+Skills can be invoked explicitly with `/study-*`. Cursor also applies
+`concept-gap-capture`, `study-plan`, `study-probe`, and `study-deep`
+automatically when a request matches their descriptions — those descriptions are
+deliberately disjoint, and `scripts/check_architecture.py` fails the build if
+two of them start claiming the same kind of request. `study-log` is
+intentionally explicit-only.
 
 ## Installation
 

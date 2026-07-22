@@ -1,78 +1,82 @@
 ---
 name: concept-gap-capture
 description: >-
-  Use when the user asks what/how/why something is, how A differs from B, or
-  shows a conceptual gap while exploring code (any language)—even if they don't
-  say "study" or "queue." Separates understanding-questions from agent tasks,
-  clarifies project-unfamiliarity vs missing concepts, and adds transferable
-  topics to the study queue when missing. Do not use for pure implement/fix/
-  refactor with no learning intent, quizzes, or curated study tracks.
+  Explain a concept the user is missing and queue it for study. Use when the
+  user asks what something is, how or why it works, how A differs from B, or
+  otherwise shows a conceptual gap while reading code — even mid-task, and even
+  if they never say "study" or "queue". Not for implement/fix/refactor requests
+  with no learning intent, not for quizzes or assessments, not for curated study
+  tracks, and not for progress snapshots of the profile.
 ---
 
 # Concept gap capture
 
-Capture at most **one** transferable study topic when the user is trying to
-*understand* something—not when they only want work done.
+Answer the question, then queue **at most one** transferable topic — and only
+when the user is trying to *understand* something, not merely to get work done.
 
 ## 1. Classify the turn
 
 | Kind | Signals | Action |
 |------|---------|--------|
-| `agent_task` | implement, fix, refactor, “do X in the repo” | Do the work. Stop. No queue write. |
-| `concept_gap` | definition, mechanism, purpose/why, contrast between concepts; not aimed at a specific file/symbol | Continue from step 3. |
-| `repo_question` | asks about this codebase (file, module, path, symbol, “how does this project…”) | Continue from step 2. |
+| `agent_task` | implement, fix, refactor, "do X in the repo" | Do the work. Stop here. No queue write. |
+| `concept_gap` | definition, mechanism, purpose/why, contrast between two concepts; not aimed at a specific file or symbol | Go to step 3. |
+| `repo_question` | asks about this codebase — a file, module, path, symbol, "how does this project…" | Go to step 2. |
 
-If unclear between `agent_task` and a question, prefer asking one clarifying
-question before writing the queue.
+If you cannot tell an `agent_task` from a question, ask one clarifying question
+before writing anything.
 
-## 2. Repo question: concept vs project familiarity
+## 2. Repo question: project familiarity or missing concept?
 
-Ask **one or two** short questions before assuming a study topic, for example:
+Ask one or two short questions first, for example:
 
 - Are you unsure what this *part of the project* does, or what the underlying
-  *concept/tool* is (e.g. Docker, hooks, HTTP)?
-- If you already knew the concept, would the code make sense?
+  *concept/tool* is (Docker, hooks, HTTP…)?
+- If you already knew the concept, would this code make sense?
 
 Then:
 
-- **Project unfamiliarity** → explain from the repo; no global queue write
-  (optional: local note in `.cursor/learning/project.md` only if useful).
-- **Missing concept** → treat as `concept_gap` with a generalized topic
-  (not the raw symbol/path). Continue from step 3.
-- **Both** → explain the local bit briefly; queue only the transferable concept.
+- **Project unfamiliarity** → explain from the repo. No global queue write.
+- **Missing concept** → treat it as a `concept_gap` under a generalized topic
+  name, never the raw symbol or path. Go to step 3.
+- **Both** → explain the local part briefly; queue only the transferable concept.
 
 ## 3. Explain
 
-Answer the question (prefer `learning-explanations` style when teaching).
-Do not announce internal labels (`concept_gap`, etc.) unless asked.
+Lead with the main idea in plain language, add one concrete example, then say
+why it matters. Never announce the internal labels above.
 
-## 4. Check the study queue
+## 4. Check the queue before writing
 
 ```bash
 python3 ~/.cursor/learning/cli.py show
 ```
 
-If the topic (or a clear alias) is already queued or covered, say so in one
-line and do **not** add a duplicate.
+If the topic or a clear alias is already queued or covered, say so in one line
+and do **not** add a duplicate.
 
-## 5. Add if missing
+## 5. Queue it if missing
 
 ```bash
-python3 ~/.cursor/learning/cli.py want --topic "TOPIC" --note "why"
+python3 ~/.cursor/learning/cli.py want --topic "TOPIC" --note "why it came up"
 ```
 
-If the CLI is missing:
+If `~/.cursor/learning/cli.py` does not exist, do not silently drop the write.
+Emit this marker as an isolated final line so the `afterAgentResponse` hook can
+persist it, and say it was queued via fallback and that a new chat lets
+`sessionStart` install the CLI for direct writes:
 
 ```text
-<!-- LEARNING-WANT topic="TOPIC" note="why" -->
+<!-- LEARNING-WANT topic="TOPIC" note="why it came up" -->
 ```
 
-Then one confirmation line after a successful write.
+Confirm the result in one line. If the CLI answers "Already in queue" or
+"Ignored", report that and do not insist.
 
-## MUST NOT
+## Never
 
-- Queue bare generics (code, file, error…) or bare base languages (Python, JS…).
-- Queue raw repo jargon with no transferable concept.
 - Queue more than one topic in this turn.
-- Recommend more than 1–2 named sources, or say “search for X”.
-- Run deep research / build a syllabus here → use `study-deep`.
+- Queue bare generics (code, file, error…) or bare base languages (Python, JS…).
+- Queue raw repo jargon that has no transferable concept behind it.
+- Write `covered` here — this skill only ever queues `want`.
+- Recommend more than 1–2 named sources, or say "search for X". A real study
+  track is `study-deep`.

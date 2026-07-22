@@ -6,11 +6,8 @@ topic** with **5 to 10** questions; fewer than five questions must not write
 
 ## Transferability
 
-Before selecting or scoring a topic, apply the Learning Tutor
-`project-learning-boundary` transferability test (sole owner of that policy).
-Do not redefine the gate here.
-
-Probe-local examples of local detail → broader concept:
+Only probe what would still be useful without opening this repository. Local
+detail is a starting point, never the topic:
 
 | Local detail | Transferable concept |
 |---|---|

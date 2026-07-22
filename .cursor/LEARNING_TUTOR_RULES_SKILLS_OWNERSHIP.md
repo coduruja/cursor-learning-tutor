@@ -1,94 +1,80 @@
 # Learning Tutor — ownership map
 
-Current state as of **2.6.0**. Rules/Skills evidence policy landed in 2.4.0.
-Domain persistence lives under `runtime/`; `hooks/` are thin Cursor adapters.
+Current state as of **3.0.0**. For *how to choose* between a rule, skill, hook,
+and agent when adding something, see `.cursor/rules/authoring-protocols.mdc`.
+This file records who owns what today.
 
-This file is the short ownership map for the tutoring architecture. Detailed
-workflow text lives in `rules/` and `skills/`.
+## The shape
 
-## Rule vs Skill vs Reference vs Hook vs Runtime
+```text
+rules/learning-tutor.mdc      one always-on rule — invariants only
+skills/<name>/SKILL.md        one self-contained procedure each
+agents/study-researcher.md    isolated-context research
+hooks/*.py                    Cursor lifecycle adapters (thin, fail-open)
+runtime/learning/             persistence, topic normalization, CLI install
+```
 
-| **Rule** | **Skill** | **Reference** | **Hook** | **Runtime** |
-|---|---|---|---|---|
-| Short policy (“always / never”) | Multi-step study task | Detail loaded only when a Skill needs it | Cursor lifecycle adapter (JSON in/out) | Deterministic persistence / CLI |
-| Shared across flows | Owned by one workflow | e.g. probe rubric | Thin; fail-open | Owns profile/project files |
-
-- **Rule** ≈ write always like this  
-- **Skill** ≈ run this study task end-to-end  
-- **Reference** ≈ read only when probing  
-- **Hook** ≈ when Cursor rings the bell (`sessionStart`, `afterAgentResponse`)  
-- **Runtime** ≈ the kitchen (read/write profile, normalize topics, install CLI)
-
-Persistence **policy** → Rule (`learning-recording` full contract;
-`concept-gap-capture` skill owns queue check + `want` on conceptual gaps).  
-Persistence **mechanics** → Runtime under `runtime/learning/`.  
-Probe scoring → Skill reference.
-
-## Evidence policy
-
-- Exposure / self-report / finishing a track ≠ `covered`.
-- Only a **one-topic** `study-probe` attests knowledge: **5–10** questions,
-  wait for answers, **≥50%** correct → `covered`; else `want`.
-- Markers: `LEARNING-WANT` only (no covered marker).
+One rule is always on. Everything else loads only when it is needed, and
+whatever loads is complete on its own.
 
 ## Single-owner map
 
 | Concern | Owner |
 |---|---|
-| Persist `want` / `covered` (CLI, markers, feedback) | `rules/learning-recording.mdc` (full contract) |
-| Transferability (local vs global) | `rules/project-learning-boundary.mdc` |
-| Auto-`want` on conceptual questions | `skills/concept-gap-capture` |
-| Explanation style for learners (static; no profile I/O) | `skills/learning-explanations` |
-| Routing + coding vs learning | `rules/tutor-core.mdc` (only always-on rule) |
-| Probe scoring | `skills/study-probe` + `references/assessment-rubric.md` |
-| Snapshot / missing-sheet sync | `skills/study-plan` (read-only; no profile writes) |
-| Init + manual `want` | `skills/study-log` (explicit only; “I learned X” → probe) |
-| Deep research track | `skills/study-deep` → always hands off to probe |
-| Research subagent | `agents/study-researcher.md` (research only; no probe writes) |
+| Explanation style, transferability gate, evidence law | `rules/learning-tutor.mdc` |
+| Explain a concept + queue the gap | `skills/concept-gap-capture` |
+| Read-only snapshot, local sheet discovery | `skills/study-plan` |
+| Assess one topic; **only** writer of `covered` | `skills/study-probe` |
+| Probe scoring detail | `skills/study-probe/references/assessment-rubric.md` |
+| Curated track → always hands off to a probe | `skills/study-deep` |
+| Manual `init` / `want`, explicit-only | `skills/study-log` |
+| Resource research, no writes | `agents/study-researcher.md` |
 | Cursor event adapters | `hooks/inject_profile.py`, `hooks/capture_learning.py` |
-| Profile/project I/O + CLI install | `runtime/learning/` (+ `runtime/cli.py`) |
+| Profile/project I/O, aliases, CLI install | `runtime/learning/` (+ `runtime/cli.py`) |
+
+`want` is written by four skills, each spelling out the command itself. That
+duplication is deliberate: a skill that outsources its write to something which
+may not be in context is a skill that silently does nothing.
+
+## Evidence policy
+
+- Exposure, self-report, or finishing a track ≠ `covered`.
+- Only a **one-topic** `study-probe` attests knowledge: **5–10** questions, wait
+  for answers, **≥50%** correct → `covered`; otherwise `want`.
+- Markers: `LEARNING-WANT` only. There is no covered marker, by design — the
+  queue can tolerate a best-effort write, attested knowledge cannot.
 
 ## Integration map
 
 ```text
-concept_gap (skill) ──want──► queue
-                │
-                ▼
-         study-plan ──offers──► study-probe ──covered/want──► profile
-                │                      ▲
-                └──offers──► study-deep ──always──► study-probe (same topic)
-                                   │
-                                   └── study-researcher (research only)
+concept-gap-capture ──want──► queue
+                                │
+study-plan ──offers──► study-probe ──covered / want──► profile
+      │                      ▲
+      └──offers──► study-deep ──always──► study-probe (same topic)
+                        │
+                        └── study-researcher (research only)
 
 study-log ── want / init ──► profile
-          └── “I learned X” ──► study-probe
-
-self-attestation (“I understand…”, “finished studying…”) ──► study-probe
+          └── "I learned X" ──► study-probe
 
 Cursor sessionStart ──install CLI + best-effort inject──► Agent context
 Cursor afterAgentResponse ──LEARNING-WANT markers──► runtime.add_want
 ```
 
-Public Agent path: `python3 ~/.cursor/learning/cli.py …`  
-Optional inject: `LEARNING-PROFILE` / `LEARNING-PROJECT` (best-effort; do not
-treat inject alone as the only calibration source).
+Public agent path: `python3 ~/.cursor/learning/cli.py …`
+Optional inject: `LEARNING-PROFILE` / `LEARNING-PROJECT` — best-effort, so no
+skill may treat it as the only source of state.
 
-## How to think about Hooks (correct framing)
+## Hooks are the bell, runtime is the kitchen
 
-Hooks are **not** the Learning Tutor product. They are the Cursor harness plug:
-
-| Event | Intended job | Must stay thin |
+| Event | Job | Constraint |
 |---|---|---|
-| `sessionStart` | Ensure stable CLI exists; optionally emit context | Yes — fire-and-forget |
-| `afterAgentResponse` | Capture want-only markers when CLI was missing | Yes — observe / side-effect |
+| `sessionStart` | Ensure the CLI exists; emit context | Fire-and-forget, fail-open |
+| `afterAgentResponse` | Capture want-only markers | Observe / side-effect only |
 
-Industry pattern (Claude Code playbooks, OpenAI Agents lifecycle hooks,
-LangChain middleware, harness papers): **hooks/middleware observe or gate the
-loop; application services own domain state.** Putting markdown parsers,
-aliases, and migrations inside the hook folder confuses “bell” with “kitchen.”
-
-Today the kitchen lives at `runtime/learning/`. Hooks only adapt Cursor events
-and call into that runtime.
+Markdown parsing, aliases, and migrations belong in `runtime/learning/`, never
+in `hooks/`. Line budgets in `scripts/smoke_install.py` enforce it.
 
 ## Runtime rules vs maintainer rules
 
@@ -96,10 +82,7 @@ and call into that runtime.
 |---|---|---|
 | Audience | Plugin users | Contributors to this repo |
 | Shipped? | Yes (plugin manifest) | No |
-| Purpose | Tutor behavior | Dev conventions here |
-
-Ask: *who should feel this rule?* Tutor behavior → `rules/`. Editing this
-repo only → `.cursor/rules/`. Do not mix.
+| Purpose | Tutor behavior | How to author this plugin |
 
 ## Verify
 

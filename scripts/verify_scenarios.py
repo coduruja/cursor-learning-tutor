@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
 """Structural verification of the Learning Tutor scenario matrix.
 
-Does not run a live Agent chat. It checks that Rules and Skills encode the
-evidence and ownership contracts in LEARNING_TUTOR_RULES_SKILLS_OWNERSHIP.md.
+Does not run a live Agent chat. It checks that the shipped rule, skills, and
+agent still encode the behavior each scenario depends on. `check_architecture`
+covers structure; this file covers meaning.
 
 Usage (from repo root):
   python3 scripts/verify_scenarios.py
@@ -21,151 +22,182 @@ def read(rel: str) -> str:
     return (ROOT / rel).read_text(encoding="utf-8")
 
 
-def fail(errors: list[str]) -> int:
-    print("Scenario matrix verification failed:")
-    for err in errors:
-        print(f"  - {err}")
-    return 1
+def normalize(text: str) -> str:
+    """Lowercase, unwrap lines, drop markdown emphasis.
+
+    Checks assert meaning, not formatting: a phrase that got re-wrapped or
+    bolded during an edit is still the same instruction.
+    """
+    return re.sub(r"\s+", " ", text.replace("*", "").replace("`", "")).lower()
+
+
+def has(text: str, *needles: str) -> bool:
+    """True when every needle appears, ignoring wrapping and emphasis."""
+    haystack = normalize(text)
+    return all(normalize(needle) in haystack for needle in needles)
+
+
+def has_any(text: str, *needles: str) -> bool:
+    haystack = normalize(text)
+    return any(normalize(needle) in haystack for needle in needles)
 
 
 def main() -> int:
     errors: list[str] = []
 
-    core = read("rules/tutor-core.mdc")
+    def require(condition: bool, message: str) -> None:
+        if not condition:
+            errors.append(message)
+
+    rule = read("rules/learning-tutor.mdc")
     capture = read("skills/concept-gap-capture/SKILL.md")
-    explanations = read("skills/learning-explanations/SKILL.md")
-    recording = read("rules/learning-recording.mdc")
-    boundary = read("rules/project-learning-boundary.mdc")
-    study_log = read("skills/study-log/SKILL.md")
-    study_plan = read("skills/study-plan/SKILL.md")
-    study_probe = read("skills/study-probe/SKILL.md")
-    study_deep = read("skills/study-deep/SKILL.md")
+    plan = read("skills/study-plan/SKILL.md")
+    probe = read("skills/study-probe/SKILL.md")
+    deep = read("skills/study-deep/SKILL.md")
+    log = read("skills/study-log/SKILL.md")
     rubric = read("skills/study-probe/references/assessment-rubric.md")
+    researcher = read("agents/study-researcher.md")
 
-    # Rules-focused expectations
-    if "alwaysApply: true" not in core:
-        errors.append("tutor-core must be always-on for ordinary coding turns")
-    if "concept-gap-capture" not in core:
-        errors.append("tutor-core must route conceptual questions to concept-gap-capture")
-    for rule, label in (
-        (recording, "learning-recording"),
-        (boundary, "project-learning-boundary"),
+    # --- Scenario: ordinary coding turn -----------------------------------
+    require(
+        has(rule, "alwaysApply: true"),
+        "the tutor rule must be always-on so ordinary turns still classify",
+    )
+    require(
+        has_any(rule, "no study write", "do the work"),
+        "rule must tell a code task to do the work without a study write",
+    )
+
+    # --- Scenario: the tutor explains -------------------------------------
+    require(
+        has(rule, "plain language"),
+        "explanation style (plain-language lead) must live in the always-on rule",
+    )
+
+    # --- Scenario: transferability ----------------------------------------
+    require(
+        has(rule, "Would this still be useful without opening this repository?"),
+        "the always-on rule must own the transferability test",
+    )
+    require(
+        has_any(rule, "never global", "never global topics"),
+        "rule must state that repo-local detail never enters the global profile",
+    )
+    require(
+        has(rule, "auto-promoted"),
+        "rule must forbid auto-promoting project candidates into the queue",
+    )
+
+    # --- Scenario: evidence -----------------------------------------------
+    require(
+        has(rule, "study-probe") and has_any(rule, "demonstrated", "never *exposed*"),
+        "rule must define covered as demonstrated via study-probe",
+    )
+    require(
+        not has(rule, "LEARNING-LOG"),
+        "the LEARNING-LOG covered marker is retired and must not reappear",
+    )
+    for name, text in (
+        ("concept-gap-capture", capture),
+        ("study-log", log),
+        ("study-probe", probe),
     ):
-        if "alwaysApply: false" not in rule:
-            errors.append(f"{label} must be Apply Intelligently")
+        require(
+            "LEARNING-COVERED" not in text,
+            f"{name} must not invent a covered marker — covered needs the CLI",
+        )
 
-    cap_fm = capture.split("---", 2)[1] if capture.startswith("---") else ""
-    if "name: concept-gap-capture" not in cap_fm:
-        errors.append("concept-gap-capture skill must declare name")
-    if "disable-model-invocation: true" in cap_fm:
-        errors.append("concept-gap-capture must stay model-invocable")
-    if "at most **one**" not in capture:
-        errors.append("concept-gap-capture must limit to one want topic")
-    if "cli.py want" not in capture:
-        errors.append("concept-gap-capture must include the want CLI")
-    if "cli.py show" not in capture:
-        errors.append("concept-gap-capture must check the queue via cli.py show")
-    if "project" not in capture.lower() or "concept" not in capture.lower():
-        errors.append("concept-gap-capture must distinguish project unfamiliarity vs concept gap")
-    if "why" not in capture.lower():
-        errors.append("concept-gap-capture must include why-intent signals")
+    # --- Scenario: conceptual question ------------------------------------
+    require(has(capture, "at most **one**"), "capture must queue at most one topic")
+    require(has(capture, "cli.py show"), "capture must check the queue before writing")
+    require(has(capture, "cli.py want"), "capture must inline the want CLI")
+    require(
+        has(capture, "LEARNING-WANT"),
+        "capture must keep the want marker fallback for a missing CLI",
+    )
+    require(
+        has(capture, "concept_gap", "repo_question", "agent_task"),
+        "capture must classify agent task vs concept gap vs repo question",
+    )
 
-    exp_fm = explanations.split("---", 2)[1] if explanations.startswith("---") else ""
-    if "name: learning-explanations" not in exp_fm:
-        errors.append("learning-explanations skill must declare name")
-    if "description:" not in exp_fm:
-        errors.append("learning-explanations skill must have a description for discovery")
-    if "disable-model-invocation: true" in exp_fm:
-        errors.append("learning-explanations must stay model-invocable")
-    if "cli.py" in explanations or "LEARNING-PROFILE" in explanations:
-        errors.append("learning-explanations must not depend on profile I/O")
-    if "plain language" not in explanations:
-        errors.append("learning-explanations must require plain-language lead")
+    # --- Scenario: probe ---------------------------------------------------
+    require(
+        has_any(probe[:1400], "exactly one topic", "one topic"),
+        "probe must select exactly one topic",
+    )
+    require(has_any(probe, "5 to 10", "5–10"), "probe must ask 5-10 questions")
+    require(has(probe, "50%"), "probe must apply the 50% covered bar")
+    require(
+        has(probe, "assessment-rubric.md"),
+        "probe must load the rubric before scoring",
+    )
+    require(has(probe, "cli.py covered"), "probe must inline the covered CLI")
+    require(
+        has(probe, "cli.py want"),
+        "probe must inline the want CLI for a failed probe",
+    )
+    require(has(probe, "project-drop"), "probe must keep project sheet hygiene")
 
-    if "one-topic probe" not in recording and "one-topic" not in recording:
-        errors.append("learning-recording must require one-topic probe for covered")
-    if "LEARNING-LOG" in recording and "retired" not in recording:
-        errors.append("learning-recording must retire LEARNING-LOG")
-    if "LEARNING-WANT" not in recording:
-        errors.append("learning-recording must keep LEARNING-WANT fallback")
+    # --- Scenario: rubric --------------------------------------------------
+    require(has_any(rubric, "5 to 10", "5–10"), "rubric must state the 5-10 range")
+    require(has(rubric, "50%"), "rubric must state the 50% bar")
+    require(
+        has(rubric, "without opening this repository"),
+        "rubric must keep probes transferable",
+    )
 
-    if "Would this still be useful without opening this repository?" not in boundary:
-        errors.append("project-learning-boundary must own the transferability test")
+    # --- Scenario: curated track ------------------------------------------
+    require(
+        has(deep, "study-researcher"), "deep must delegate research to the subagent"
+    )
+    require(has(deep, "at most five"), "deep must cap the track at five resources")
+    require(
+        has(deep, "always continue") and has(deep, "study-probe"),
+        "deep must always continue into a one-topic probe",
+    )
+    require(
+        has(deep, "must not write covered"),
+        "deep must state that finishing a track is not covered",
+    )
+    require(
+        has(researcher, "readonly: true"), "study-researcher must stay read-only"
+    )
+    require(
+        has(researcher, "Do not") and has(researcher, "covered"),
+        "study-researcher must be forbidden from writing profile state",
+    )
 
-    # Skills-focused expectations
-    log_fm = study_log.split("---", 2)[1]
-    if "disable-model-invocation: true" not in log_fm:
-        errors.append("study-log must be explicit-only")
-    if "study-probe" not in study_log or "covered" not in study_log.lower():
-        errors.append("study-log must route learned-claims to study-probe")
-    if "project-learning-boundary" not in study_log:
-        errors.append("study-log must apply project-learning-boundary")
-    if "cli.py want" in study_log or "cli.py covered" in study_log:
-        errors.append("study-log must not duplicate want/covered CLI")
+    # --- Scenario: manual log ----------------------------------------------
+    require(
+        has(log, "disable-model-invocation: true"),
+        "study-log must stay explicit-only",
+    )
+    require(
+        has(log, "study-probe"),
+        "study-log must route a learned-claim to a probe instead of covered",
+    )
+    require(has(log, "cli.py init"), "study-log must own profile creation")
 
-    plan_desc = re.search(r"^description:\s*(.+)$", study_plan, re.M)
-    if not plan_desc or "read-only" not in plan_desc.group(1).lower():
-        # description may wrap - check first 500 chars of frontmatter
-        plan_head = study_plan[:800].lower()
-        if "read-only" not in plan_head and "do not use for quizzes" not in plan_head:
-            errors.append("study-plan description must be read-only / non-quiz")
-    if "Empty profile" in study_plan and "/study-log" not in study_plan:
-        errors.append("empty study-plan must point to /study-log")
-    if re.search(r"run `?init`?", study_plan) and "Do not" not in study_plan:
-        # plan should not run init
-        if "do not run `init`" not in study_plan.lower() and "do not run init" not in study_plan.lower():
-            if "do not" in study_plan.lower() and "init" in study_plan.lower():
-                pass  # likely "do not run init, want, or covered"
-            else:
-                errors.append("study-plan must not onboard with init")
-    if "do not run `init`, `want`, or `covered`" not in study_plan.lower() and \
-       "do not run `init`" not in study_plan.lower():
-        # Check the actual file wording
-        if "do not" not in study_plan.lower() or "init" not in study_plan:
-            errors.append("study-plan must forbid init/want/covered writes")
-
-    probe_head = study_probe[:1200].lower()
-    if "exactly one" not in probe_head and "one topic" not in probe_head:
-        errors.append("study-probe must select exactly one topic")
-    if "5 to 10" not in study_probe and "5–10" not in study_probe:
-        errors.append("study-probe must require 5-10 questions")
-    if "50%" not in study_probe:
-        errors.append("study-probe must use the 50% covered bar")
-    if "finished studying" not in probe_head and "finished studying" not in study_probe.lower():
-        errors.append("study-probe description must include self-attestation triggers")
-    if "study-deep" not in study_probe.lower():
-        errors.append("study-probe description must mention post-deep handoff")
-    if "cli.py want" in study_probe or "cli.py covered" in study_probe:
-        errors.append("study-probe must not duplicate want/covered CLI")
-    if "project-drop" not in study_probe:
-        errors.append("study-probe must keep project-drop")
-
-    if "project-learning-boundary" not in rubric:
-        errors.append("rubric must point at project-learning-boundary")
-    if "50%" not in rubric:
-        errors.append("rubric must state the 50% bar")
-    if "5 to 10" not in rubric and "5–10" not in rubric:
-        errors.append("rubric must require 5-10 questions")
-
-    if "must **not**\nwrite `covered`" not in study_deep and "must **not** write `covered`" not in study_deep:
-        if "must not write `covered`" not in study_deep.lower() and "must **not**" not in study_deep:
-            errors.append("study-deep must state track completion is not covered")
-    if "study-probe" not in study_deep:
-        errors.append("study-deep must hand off to study-probe")
-    if "Always continue" not in study_deep and "always continue" not in study_deep.lower():
-        errors.append("study-deep must always continue into study-probe")
-    if "cli.py want" in study_deep or "cli.py covered" in study_deep:
-        errors.append("study-deep must not duplicate want/covered CLI")
-
-    # Ambiguous plan vs probe wording
-    if "Do not use for quizzes" not in study_plan and "do not use for quizzes" not in study_plan.lower():
-        errors.append("study-plan must exclude quizzes in description")
-    if "Do not use for passive profile summaries" not in study_probe and \
-       "do not use for passive" not in study_probe.lower():
-        errors.append("study-probe must exclude passive summaries in description")
+    # --- Scenario: read-only plan ------------------------------------------
+    require(
+        has(plan, "read-only") or has(plan, "Read-only"),
+        "study-plan must announce itself as read-only",
+    )
+    require(
+        re.search(r"do not run\s+`?init`?", plan, re.I) is not None,
+        "study-plan must forbid init/want/covered writes",
+    )
+    require(
+        has(plan, "/study-log"),
+        "an empty profile in study-plan must point at /study-log",
+    )
+    require(has(plan, "cli.py show"), "study-plan must read state from the CLI")
 
     if errors:
-        return fail(errors)
+        print("Scenario matrix verification failed:")
+        for err in errors:
+            print(f"  - {err}")
+        return 1
 
     print("Scenario matrix structural checks passed.")
     print("Live Agent confirmation still needed in Cursor for:")

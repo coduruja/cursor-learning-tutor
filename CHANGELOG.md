@@ -1,5 +1,33 @@
 # Changelog
 
+## 3.0.0
+
+Breaking: rule and skill files were renamed and removed. Reinstall from the
+marketplace. `profile.md`, the project sheet, and the CLI are unchanged — no
+learning data is affected.
+
+- **One always-on rule.** `rules/learning-tutor.mdc` replaces `tutor-core`,
+  `learning-recording`, and `project-learning-boundary`. It holds only what must
+  hold every turn: explanation style, the transferability gate, the evidence
+  law, and the CLI-only write path.
+- **Removed the description-matched rules.** Policy that a skill depends on
+  cannot load probabilistically. Skills that said “persist through the recording
+  policy” did nothing whenever that rule was not in context.
+- **Skills are self-contained.** Each one spells out the exact CLI commands it
+  needs. `want` now appears in four skills on purpose — DRY across a context
+  boundary is a bug, not a virtue.
+- **Removed the `learning-explanations` skill.** Three lines of style is a rule,
+  not a procedure, and its description competed with `concept-gap-capture` for
+  the same requests. Style moved into the always-on rule.
+- **Disjoint skill descriptions.** Every description now states what it is *not*
+  for and names the sibling that owns that case.
+- **Inverted the guardrails.** `scripts/check_architecture.py` used to forbid a
+  skill from restating a CLI command; it now requires it, and additionally
+  enforces the single always-on rule, its line budget, disjoint triggers, and
+  `study-probe` as the only writer of `covered`.
+- Added `.cursor/rules/authoring-protocols.mdc` — how to pick and write a rule,
+  skill, hook, or agent in this repo.
+
 ## 2.6.0
 - Hook vs Runtime packaging: domain code lives under `runtime/learning/` with
   `runtime/cli.py`; hooks are thin adapters plus a `lib_profile` shim.

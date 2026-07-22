@@ -50,7 +50,7 @@ def check_manifest_paths(plugin: dict) -> None:
 def check_rules() -> None:
     rules_dir = ROOT / "rules"
     always = []
-    intelligent = []
+    conditional = []
     for path in sorted(rules_dir.glob("*.mdc")):
         text = path.read_text(encoding="utf-8")
         match = FRONTMATTER_RE.match(text)
@@ -60,20 +60,18 @@ def check_rules() -> None:
         if re.search(r"alwaysApply:\s*true", fm):
             always.append(path.name)
         else:
-            intelligent.append(path.name)
-    if always != ["tutor-core.mdc"]:
-        fail(f"expected only tutor-core always-on, found {always}")
-    expected_intelligent = {
-        "learning-recording.mdc",
-        "project-learning-boundary.mdc",
-    }
-    if set(intelligent) != expected_intelligent:
-        fail(f"unexpected intelligent rules: {intelligent}")
+            conditional.append(path.name)
+    if always != ["learning-tutor.mdc"]:
+        fail(f"expected only learning-tutor always-on, found {always}")
+    if conditional:
+        fail(
+            f"conditional rules are not part of this architecture: {conditional}. "
+            f"Policy a skill depends on must not load probabilistically — put "
+            f"invariants in the always-on rule and procedure in the skill."
+        )
     print("OK rules context map:")
     print(f"  always-on: {', '.join(always)}")
-    print(f"  intelligent: {', '.join(intelligent)}")
-    print("  ordinary coding turn → expect tutor-core only (others by intent)")
-    print("  learning turn → core + matching intelligent rule(s)")
+    print("  every turn → the invariants; procedure arrives with the matched skill")
 
 
 def check_skills() -> None:
@@ -83,7 +81,6 @@ def check_skills() -> None:
         "study-plan",
         "study-probe",
         "study-deep",
-        "learning-explanations",
         "concept-gap-capture",
     ]
     for name in required:
