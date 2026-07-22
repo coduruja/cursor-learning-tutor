@@ -1,0 +1,157 @@
+# Hooks + runtime refactor plan
+
+Status: next work after 2.5.0 on branch `cursor/hooks-agents-refactor`.
+
+This plan replaces the old hooks diagnosis/contracts docs. It assumes Rules and
+Skills ownership in `LEARNING_TUTOR_RULES_SKILLS_OWNERSHIP.md` stays stable.
+
+## Why refactor again
+
+Phases A–F made adapters safer and split `lib_profile` into modules, but the
+**mental model is still wrong for readers**: almost all persistence code still
+lives under `hooks/`.
+
+Across ecosystems the same lesson shows up:
+
+| Source | Practice |
+|---|---|
+| Cursor docs / plugin packaging | Narrow events; `$CURSOR_PLUGIN_ROOT`; fail-open for non-gates; `sessionStart` is fire-and-forget |
+| Claude Code production playbooks (e.g. Totalum 2026) | Keep hot-path hooks fast; fail open on non-security work; push heavy work off the critical path; match narrowly |
+| Claude Lab / quality-gate notes | Formatters and side effects must exit 0; do not put judgmental product logic in hooks |
+| OpenAI Agents SDK lifecycle hooks | Hooks observe/instrument the run; they are not the application service |
+| LangChain agent middleware / harness write-ups | Cross-cutting concerns (redact, retry, inject) sit in middleware; domain state stays outside |
+| Harness engineering (e.g. SemaClaw / agent-harness essays) | Separate plugin surfaces: tools, skills, agents, **hooks** — each with one concern |
+| Real Cursor adapters (e.g. Atrium inject script) | Thin shell: call a service, emit `additional_context` or `{}`, always fail-open, tight timeout |
+
+**Translation for Learning Tutor:** Cursor should only see two thin adapters.
+Profile markdown, topic normalization, project sheets, and CLI packaging are a
+**runtime service** that hooks call — not “hook features.”
+
+## Target shape
+
+```text
+runtime/                         # domain service (name may vary)
+  learning/
+    paths.py
+    topics.py
+    sections.py
+    context.py
+    profile.py
+    project.py
+    install.py
+  cli.py                         # or keep learning_cli.py name during migrate
+  __init__ / py.typed as needed
+
+hooks/
+  hooks.json                     # only $CURSOR_PLUGIN_ROOT → thin scripts
+  inject_profile.py              # sessionStart adapter only
+  capture_learning.py            # afterAgentResponse adapter only
+  hook_io.py                     # optional shared stdin/stdout/diag helpers
+
+# Compat during transition
+hooks/lib_profile.py             # temporary re-export OR deleted after install migrates
+```
+
+Stable public path for the Agent remains:
+
+```bash
+python3 ~/.cursor/learning/cli.py …
+```
+
+`sessionStart` (or an explicit install path) still copies/publishes the runtime
+into `~/.cursor/learning/` so Rules/Skills do not need the plugin root.
+
+## Non-goals
+
+- Do not reopen the evidence policy (`covered` only via one-topic probe).
+- Do not merge Rules back into a monolith.
+- Do not make hooks fail-closed (this is not a security gate).
+- Do not depend on `sessionStart` `additional_context` as the only calibration
+  path (platform inject is best-effort / sometimes dropped).
+
+## Design principles
+
+1. **Hook = bell.** Parse event JSON, call runtime, emit allowed stdout fields,
+   log failures to stderr, exit 0.
+2. **Runtime = kitchen.** All profile/project/topic/install logic lives here.
+3. **Policy stays in Rules/Skills.** Hooks never decide “should this be covered?”
+4. **Install is the reliable sessionStart job.** Inject is optional enrichment.
+5. **Fast and fail-open.** Prefer timeouts; never block the Agent loop.
+6. **One public CLI contract.** Keep argv stable unless versioning a migration.
+7. **Tests first.** Extend `scripts/test_hooks_agents.py` / `verify_release.py`
+   before moving files.
+
+## Phased plan
+
+### Phase 1 — Freeze the story (docs + checks)
+
+- Ownership map already distinguishes Hook vs Runtime.
+- Add smoke asserts that adapter files stay small (line budget) and that
+  `hooks.json` only references adapter scripts.
+- Document current public CLI commands as the compatibility surface.
+
+Exit: contributors agree “hooks/ ≠ product backend.”
+
+### Phase 2 — Move package without behavior change
+
+- Move `hooks/learning/` → `runtime/learning/` (or `python/learning_tutor/`).
+- Point adapters + install at the new location.
+- Keep a shim at `hooks/lib_profile.py` until home installs are refreshed.
+- Update `install_cli` to copy from `runtime/` into `~/.cursor/learning/`.
+- Re-run `python3 scripts/verify_release.py`.
+
+Exit: same CLI behavior; folder names match the mental model.
+
+### Phase 3 — Thin the adapters
+
+- `inject_profile.py`: install + `runtime.render_session_context(...)` only.
+- `capture_learning.py`: extract markers + `runtime.add_want(...)` only.
+- Add explicit timeouts in `hooks.json` if supported for these events.
+- Prefer official `text` field; keep compat keys only if tests still need them.
+
+Exit: adapters readable in one screen; no domain branching inside them.
+
+### Phase 4 — Harden calibration without overweighting inject
+
+Because `sessionStart` additional_context can be dropped by the IDE:
+
+- Keep install on sessionStart.
+- Teach Skills/Rules (short reminder) that empty/missing inject → `cli.py show`
+  before inventing level.
+- Optional later experiment: `beforeSubmitPrompt` recall (other products do
+  per-turn inject) — only if measured necessary; not the first move.
+
+Exit: tutor works even when inject is silent.
+
+### Phase 5 — Optional product simplification (separate decision)
+
+Only if we want less code, not just clearer folders:
+
+- JSON/YAML profile instead of markdown sections, or
+- Drop topic-alias / anti-noise from runtime (push hygiene to Rules), or
+- Drop project sheet, or
+- Drop marker fallback (CLI-only writes).
+
+Each cut needs an explicit product decision; do not mix into Phase 2–3.
+
+### Phase 6 — Release
+
+- Bump version + CHANGELOG.
+- `python3 scripts/verify_release.py`.
+- Live checklist: new chat install, inject when it works, marker fallback,
+  `/study-deep` → researcher → probe.
+
+## Decision log (open)
+
+1. Final directory name: `runtime/` vs `python/learning_tutor/`.
+2. Whether home install stays a flat copy or becomes an importable package only.
+3. Whether to add version stamps on install to detect drift.
+4. Whether per-turn inject (`beforeSubmitPrompt`) is worth the complexity.
+
+## Success criteria
+
+- `hooks/` contains adapters + `hooks.json` (+ tiny shared I/O), not domain modules.
+- Runtime owns profile/project/topics/install.
+- Public CLI path unchanged for Agents.
+- Fail-open preserved; no Rules/Skills evidence regression.
+- Docs use Hook vs Runtime language consistently.
