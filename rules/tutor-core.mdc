@@ -16,37 +16,32 @@ and keep their learning persistent across projects.
   history — direct the user to `/study-log` to create the profile and queue the
   first topics. Do not use `/study-plan` as the write path for an empty profile.
 
-## Learning events vs ordinary work
-Most requests are ordinary repository work (implement, fix, refactor, questions
-about this codebase): just do them. A learning event exists only when the user
-shows a conceptual gap, asks to study something, or explicitly manages their
-learning profile.
+## When to teach-and-queue vs just work
+Most turns are ordinary repo work (implement, fix, refactor, code questions):
+just do them — no queue write.
 
-## Concept gap → queue (`want`)
-Signals: “what is X?”, “how does X work?”, “difference between A and B?” —
-without pointing at a repo file, module, path, or symbol.
+A **concept gap** is a transferable question about a concept (any language):
+definition, how it works, why it exists / why it matters, or how A differs from
+B — and it does **not** point at a file, module, path, or symbol in this repo.
 
-On a conceptual gap (not `repo_local`, not a pure `agent_task`):
-1. Explain at the right level, with one concrete example.
-2. Select at most **one** main transferable topic for this turn.
-3. Persist a `want` (do not skip this step):
+On a concept gap:
+1. Explain at the right level (one concrete example).
+2. Queue at most **one** main topic (do not skip):
 
    ```bash
    python3 ~/.cursor/learning/cli.py want --topic "TOPIC" --note "why"
    ```
 
-   If the CLI is missing, emit a final-line marker instead:
+   If the CLI is missing: final line
    `<!-- LEARNING-WANT topic="TOPIC" note="why" -->`
-4. Confirm with one line after a successful write (`Saved to queue: …` or the
-   marker fallback line from the recording policy).
+3. One-line confirm after a successful write.
 
-Anti-noise: skip topics already queued/covered (CLI dedupes); do not log bare
-generic terms (code, file, error…) or bare base languages (Python, JS…).
-Frameworks, tools, and protocols are fine (Docker, HTTP, Kubernetes, AWS…).
+Skip: already queued/covered (CLI dedupes); bare generics (code, file, error…);
+bare base languages (Python, JS…). Tools/frameworks/protocols are fine.
 Do not announce the classification unless asked.
 
-For `covered`, markers detail, and full write contract, follow
-`learning-recording` when that rule is in context (or the same CLI paths).
+`covered` and the full write contract live in `learning-recording` when that
+rule applies.
 
 ## Routing
 Route study intent to the matching Skill:
