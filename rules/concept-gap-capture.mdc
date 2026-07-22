@@ -12,7 +12,7 @@ alwaysApply: false
 
 ## Required
 1. Explain at calibrated level; one concrete example.
-2. At most **one** transferable topic.
+2. Choose at most **one** transferable topic.
 3. Queue write (mandatory):
    - `python3 ~/.cursor/learning/cli.py want --topic "TOPIC" --note "why"`
    - If CLI missing: `<!-- LEARNING-WANT topic="TOPIC" note="why" -->`
