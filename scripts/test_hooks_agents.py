@@ -57,25 +57,29 @@ def load_lib_with_home(home: Path):
 class WantRegexTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:
-        cls.capture = load_module(CAPTURE, "capture_learning_under_test")
+        if str(RUNTIME) not in sys.path:
+            sys.path.insert(0, str(RUNTIME))
+        from learning import markers as markers_mod  # noqa: WPS433
+
+        cls.markers = markers_mod
 
     def test_valid_marker_with_note(self) -> None:
         text = '<!-- LEARNING-WANT topic="Docker" note="for deploy" -->'
-        matches = list(self.capture.WANT_RE.finditer(text))
+        matches = list(self.markers.WANT_RE.finditer(text))
         self.assertEqual(len(matches), 1)
         self.assertEqual(matches[0].group("topic"), "Docker")
         self.assertEqual(matches[0].group("note"), "for deploy")
 
     def test_valid_marker_without_note(self) -> None:
         text = 'LEARNING-WANT topic="HTTP keep-alive"'
-        matches = list(self.capture.WANT_RE.finditer(text))
+        matches = list(self.markers.WANT_RE.finditer(text))
         self.assertEqual(len(matches), 1)
         self.assertEqual(matches[0].group("topic"), "HTTP keep-alive")
         self.assertIsNone(matches[0].group("note"))
 
     def test_empty_topic_skipped_by_iterator(self) -> None:
         text = '<!-- LEARNING-WANT topic="" note="x" -->'
-        self.assertEqual(list(self.capture.iter_want_markers(text)), [])
+        self.assertEqual(list(self.markers.iter_want_markers(text)), [])
 
     def test_empty_then_valid_keeps_valid(self) -> None:
         text = (
@@ -83,17 +87,17 @@ class WantRegexTests(unittest.TestCase):
             '<!-- LEARNING-WANT topic="Docker" note="ok" -->'
         )
         self.assertEqual(
-            list(self.capture.iter_want_markers(text)),
+            list(self.markers.iter_want_markers(text)),
             [("Docker", "ok")],
         )
 
     def test_malformed_missing_topic_ignored(self) -> None:
         text = "<!-- LEARNING-WANT note=\"only note\" -->"
-        self.assertEqual(list(self.capture.WANT_RE.finditer(text)), [])
+        self.assertEqual(list(self.markers.WANT_RE.finditer(text)), [])
 
     def test_malformed_single_quotes_ignored(self) -> None:
         text = "<!-- LEARNING-WANT topic='Docker' -->"
-        self.assertEqual(list(self.capture.WANT_RE.finditer(text)), [])
+        self.assertEqual(list(self.markers.WANT_RE.finditer(text)), [])
 
 
 class HookIoTextTests(unittest.TestCase):

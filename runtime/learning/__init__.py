@@ -2,8 +2,9 @@
 
 from __future__ import annotations
 
-from learning.context import truncate_for_inject
+from learning.context import render_session_context, truncate_for_inject
 from learning.install import install_cli
+from learning.markers import WANT_RE, iter_want_markers
 from learning.paths import (
     CLI_PATH,
     LEARNING_DIR,
@@ -62,9 +63,11 @@ __all__ = [
     "ensure_project",
     "find_project_sheet",
     "first_open_queue_topic",
+    "WANT_RE",
     "init_profile",
     "install_cli",
     "is_noisy_topic",
+    "iter_want_markers",
     "legacy_project_path",
     "mark_done",
     "normalize_topic_display",
@@ -75,6 +78,7 @@ __all__ = [
     "project_sync",
     "read_profile",
     "read_project",
+    "render_session_context",
     "resolve_project_root",
     "topic_key",
     "truncate_for_inject",

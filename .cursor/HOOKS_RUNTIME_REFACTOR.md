@@ -100,12 +100,12 @@ Exit: contributors agree “hooks/ ≠ product backend.”
 
 Exit: same CLI behavior; folder names match the mental model.
 
-### Phase 3 — Thin the adapters
+### Phase 3 — Thin the adapters — **done**
 
-- `inject_profile.py`: install + `runtime.render_session_context(...)` only.
-- `capture_learning.py`: extract markers + `runtime.add_want(...)` only.
-- Add explicit timeouts in `hooks.json` if supported for these events.
-- Prefer official `text` field; keep compat keys only if tests still need them.
+- `inject_profile.py`: install + `render_session_context(...)` only.
+- `capture_learning.py`: `iter_want_markers` + `add_want(...)` only.
+- Explicit timeouts in `hooks.json` (sessionStart 10s, afterAgentResponse 5s).
+- Tightened adapter line budgets; marker/context logic in `runtime/learning/`.
 
 Exit: adapters readable in one screen; no domain branching inside them.
 

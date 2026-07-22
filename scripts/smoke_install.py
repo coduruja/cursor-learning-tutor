@@ -92,9 +92,13 @@ def check_skills() -> None:
 
 ADAPTER_SCRIPTS = ("inject_profile.py", "capture_learning.py")
 ADAPTER_LINE_BUDGET = {
-    "inject_profile.py": 150,
-    "capture_learning.py": 100,
+    "inject_profile.py": 60,
+    "capture_learning.py": 55,
     "hook_io.py": 120,
+}
+HOOK_TIMEOUTS = {
+    "sessionStart": 10,
+    "afterAgentResponse": 5,
 }
 
 
@@ -119,6 +123,13 @@ def check_hooks_json(plugin: dict) -> None:
             command = entry.get("command", "")
             if not isinstance(command, str) or not command.strip():
                 fail(f"hooks.json {event} entry missing command")
+            timeout = entry.get("timeout")
+            expected_timeout = HOOK_TIMEOUTS[event]
+            if timeout != expected_timeout:
+                fail(
+                    f"hooks.json {event} timeout must be {expected_timeout}, "
+                    f"found {timeout!r}"
+                )
             for match in re.finditer(
                 r"\$CURSOR_PLUGIN_ROOT/(hooks/[^\"'\s]+)", command
             ):
@@ -159,7 +170,7 @@ def check_hooks_json(plugin: dict) -> None:
     print(
         "OK hooks.json "
         f"(events: {', '.join(expected_events)}; adapters only; "
-        f"line budgets ok; runtime/learning package)"
+        f"timeouts ok; line budgets ok; runtime/learning package)"
     )
 
 
