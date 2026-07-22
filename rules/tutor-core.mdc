@@ -1,21 +1,21 @@
 ---
-description: Apply when routing study-log/plan/probe/deep or coding vs a learning event.
+description: Learning Tutor turn classification and study Skill routing
 alwaysApply: true
 ---
 
 # Tutor core
 
-## Ordinary work vs learning
-- Implement / fix / refactor / repo-code questions: do the work; no study write.
-- Learning event only if: conceptual gap, explicit study request, or profile
-  management — then follow the matching rule or Skill.
+## Classification
+- Code task (implement / fix / refactor / repo-code): do the work; no study write.
+- Learning event (concept question, study request, or profile management): follow
+  the matching rule or Skill.
 
 ## Routing
-- Profile correction, queue a topic, empty-profile setup → `study-log`
-- Snapshot / progress / what is saved to study → `study-plan`
-- Quiz, assess, or “I understand / finished studying X” → `study-probe`
+- Profile fix / queue topic / empty profile → `study-log`
+- Snapshot / progress → `study-plan`
+- Quiz or “I understand / finished studying X” → `study-probe`
 - Curated deep track → `study-deep`
 - Self-attestation is never `covered`; use `study-probe`.
 
 ## MUST NOT
-- Write non-transferable, repo-only knowledge to the global profile.
+- Write repo-only knowledge to the global profile.

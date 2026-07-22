@@ -1,32 +1,27 @@
 ---
-description: Apply when the user asks what/how/why a concept is, or how A differs from B (any language), not about a repo file/symbol.
+description: Concept gap capture for the study queue
 alwaysApply: false
 ---
 
 # Concept gap capture
 
-## Applies when (`concept_gap`)
-- User asks (any language) for: definition, mechanism, purpose/why, or contrast
+## Applies when
+- User asks (any language) for definition, mechanism, purpose/why, or contrast
   between concepts.
-- AND the ask does not target a repo file, module, path, or symbol.
+- Ask does not target a repo file, module, path, or symbol.
 
-## Does not apply when
-- `repo_local`: question is about this codebase → answer from code; no queue write.
-- `agent_task`: implement/fix/refactor request → do the work; no queue write.
-
-## Required actions (when it applies)
-1. Explain at calibrated level; include one concrete example.
-2. Choose at most **one** transferable topic for this turn.
-3. Write queue entry (mandatory):
-   - Prefer: `python3 ~/.cursor/learning/cli.py want --topic "TOPIC" --note "why"`
-   - If CLI missing: final line `<!-- LEARNING-WANT topic="TOPIC" note="why" -->`
-4. After success: one confirmation line only.
+## Required
+1. Explain at calibrated level; one concrete example.
+2. At most **one** transferable topic.
+3. Queue write (mandatory):
+   - `python3 ~/.cursor/learning/cli.py want --topic "TOPIC" --note "why"`
+   - If CLI missing: `<!-- LEARNING-WANT topic="TOPIC" note="why" -->`
+4. One confirmation line after success.
 
 ## MUST NOT
-- Announce classification unless the user asks.
-- Queue if topic is already queued/covered (CLI dedupe is authoritative).
-- Queue bare generics: code, file, error, function, module.
-- Queue bare base languages: Python, JS, TypeScript, etc.
-- Queue raw repo jargon with no transferable concept (treat as `repo_local`).
+- Announce classification unless asked.
+- Queue already queued/covered topics (CLI dedupe wins).
+- Queue bare generics (code, file, error…) or bare base languages (Python, JS…).
+- Queue raw repo jargon with no transferable concept.
 - Recommend more than 1–2 named sources, or say “search for X”.
-- Run deep research in-chat; curated tracks use `study-deep`.
+- Deep-research in chat; use `study-deep` for curated tracks.
