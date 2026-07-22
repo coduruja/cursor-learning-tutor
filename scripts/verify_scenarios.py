@@ -33,7 +33,7 @@ def main() -> int:
 
     core = read("rules/tutor-core.mdc")
     capture = read("rules/concept-gap-capture.mdc")
-    explanations = read("rules/learning-explanations.mdc")
+    explanations = read("skills/learning-explanations/SKILL.md")
     recording = read("rules/learning-recording.mdc")
     boundary = read("rules/project-learning-boundary.mdc")
     study_log = read("skills/study-log/SKILL.md")
@@ -47,7 +47,6 @@ def main() -> int:
         errors.append("tutor-core must be always-on for ordinary coding turns")
     for rule, label in (
         (capture, "concept-gap-capture"),
-        (explanations, "learning-explanations"),
         (recording, "learning-recording"),
         (boundary, "project-learning-boundary"),
     ):
@@ -55,8 +54,12 @@ def main() -> int:
             errors.append(f"{label} must be Apply Intelligently")
 
     exp_fm = explanations.split("---", 2)[1] if explanations.startswith("---") else ""
+    if "name: learning-explanations" not in exp_fm:
+        errors.append("learning-explanations skill must declare name")
     if "description:" not in exp_fm:
-        errors.append("learning-explanations must have a description for agent matching")
+        errors.append("learning-explanations skill must have a description for discovery")
+    if "disable-model-invocation: true" in exp_fm:
+        errors.append("learning-explanations must stay model-invocable")
     if "cli.py" in explanations or "LEARNING-PROFILE" in explanations:
         errors.append("learning-explanations must not depend on profile I/O")
     if "plain language" not in explanations:

@@ -65,7 +65,6 @@ def check_rules() -> None:
         fail(f"expected only tutor-core always-on, found {always}")
     expected_intelligent = {
         "concept-gap-capture.mdc",
-        "learning-explanations.mdc",
         "learning-recording.mdc",
         "project-learning-boundary.mdc",
     }
@@ -80,7 +79,13 @@ def check_rules() -> None:
 
 def check_skills() -> None:
     skills = ROOT / "skills"
-    required = ["study-log", "study-plan", "study-probe", "study-deep"]
+    required = [
+        "study-log",
+        "study-plan",
+        "study-probe",
+        "study-deep",
+        "learning-explanations",
+    ]
     for name in required:
         skill = skills / name / "SKILL.md"
         if not skill.is_file():

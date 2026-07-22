@@ -38,7 +38,7 @@ Probe scoring → Skill reference.
 | Persist `want` / `covered` (CLI, markers, feedback) | `rules/learning-recording.mdc` (full contract) |
 | Transferability (local vs global) | `rules/project-learning-boundary.mdc` |
 | Auto-`want` on conceptual questions | `rules/concept-gap-capture.mdc` |
-| Explanation style for learners (static; no profile I/O) | `rules/learning-explanations.mdc` |
+| Explanation style for learners (static; no profile I/O) | `skills/learning-explanations` |
 | Routing + coding vs learning | `rules/tutor-core.mdc` (only always-on rule) |
 | Probe scoring | `skills/study-probe` + `references/assessment-rubric.md` |
 | Snapshot / missing-sheet sync | `skills/study-plan` (read-only; no profile writes) |
