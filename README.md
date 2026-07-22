@@ -14,7 +14,8 @@ when you ask.
 | Probe (quiz) | `/study-probe` |
 | Curated track | `/study-deep <topic>` (no topic → first queue item) |
 
-You do not need to “turn on” the tutor: the rule uses `alwaysApply: true`.
+You do not need to “turn on” the tutor: `rules/learning-tutor.mdc` uses
+`alwaysApply: true`.
 
 ## What lives where
 
@@ -23,7 +24,7 @@ You do not need to “turn on” the tutor: the rule uses `alwaysApply: true`.
 | File | Role |
 |---|---|
 | `profile.md` | Meta, **study queue**, and **covered** |
-| `cli.py` + `lib_profile.py` | Stable CLI (installed on `sessionStart`) |
+| `cli.py` + `lib_profile.py` + `learning/` | Stable CLI (installed on `sessionStart`) |
 
 ### Per project (hybrid)
 
@@ -47,17 +48,25 @@ python3 ~/.cursor/learning/cli.py project-sync --stack "Next.js;Prisma" --candid
 
 | Component | Role |
 |---|---|
-| `rules/tutor.mdc` | Intent (`concept_gap` / `repo_local` / `agent_task`) + auto-want + calibration |
-| `skills/study-log/` | Manual-only profile correction or explicit recording |
-| `skills/study-plan/` | Auto-discoverable passive snapshot or onboarding |
-| `skills/study-probe/` | Auto-discoverable evidence-based assessment with an on-demand rubric |
-| `skills/study-deep/` | Auto-discoverable curated track orchestration |
-| `agents/study-researcher.md` | Curated research in an isolated context |
-| `hooks/*` | Injects profile + project, installs CLI, captures backup markers |
+| `rules/learning-tutor.mdc` | The only always-on rule: how to explain, what may go global, what counts as knowing |
+| `skills/concept-gap-capture/` | Explain a concept and queue the gap |
+| `skills/study-plan/` | Read-only snapshot / next steps |
+| `skills/study-probe/` | One-topic assessment — the only writer of `covered` |
+| `skills/study-deep/` | Curated track → always hands off to probe |
+| `skills/study-log/` | Explicit `init` / `want`; “I learned X” → probe |
+| `agents/study-researcher.md` | Research/curation only (readonly) |
+| `hooks/*` | Inject profile/project, install CLI, capture want markers |
 
-Skills can be invoked explicitly with `/study-*`. Cursor may also apply
-`study-plan`, `study-probe`, and `study-deep` automatically when the request
-matches their descriptions. `study-log` is intentionally explicit-only.
+**One rule, five skills.** The rule holds only what must be true on every turn;
+each skill carries the full procedure and the exact commands it needs, so it
+works whether or not anything else got loaded.
+
+Skills can be invoked explicitly with `/study-*`. Cursor also applies
+`concept-gap-capture`, `study-plan`, `study-probe`, and `study-deep`
+automatically when a request matches their descriptions — those descriptions are
+deliberately disjoint, and `scripts/check_architecture.py` fails the build if
+two of them start claiming the same kind of request. `study-log` is
+intentionally explicit-only.
 
 ## Installation
 
@@ -66,16 +75,22 @@ Install **Learning Tutor** under User. Open a **new chat** afterward — `sessio
 copies the CLI to `~/.cursor/learning/`.
 
 ### Direct copy (no marketplace)
+Prefer the marketplace path. If you must copy by hand:
+
 ```bash
 mkdir -p ~/.cursor/rules ~/.cursor/agents ~/.cursor/skills ~/.cursor/hooks ~/.cursor/learning
-cp rules/tutor.mdc            ~/.cursor/rules/
+cp rules/*.mdc               ~/.cursor/rules/
 cp agents/study-researcher.md ~/.cursor/agents/
 cp -R skills/*                ~/.cursor/skills/
-cp hooks/lib_profile.py hooks/learning_cli.py hooks/capture_learning.py hooks/inject_profile.py ~/.cursor/hooks/
-cp hooks/learning_cli.py ~/.cursor/learning/cli.py
-cp hooks/lib_profile.py ~/.cursor/learning/lib_profile.py
+cp hooks/*.py                 ~/.cursor/hooks/
+cp hooks/hooks.json           ~/.cursor/hooks/hooks.json   # edit paths if needed
+cp runtime/cli.py             ~/.cursor/learning/cli.py
+cp hooks/lib_profile.py       ~/.cursor/learning/lib_profile.py
+cp -R runtime/learning        ~/.cursor/learning/learning
 ```
-Point a global `hooks.json` at the scripts under `~/.cursor/hooks/`.
+
+Plugin installs use `$CURSOR_PLUGIN_ROOT` in `hooks/hooks.json`. A manual
+`hooks.json` must point at the copied scripts.
 
 ### Requirements
 - `python3` on PATH (Windows: use `python` in `hooks.json` if needed).
@@ -95,6 +110,12 @@ Quick intent map:
 
 The CLI normalizes aliases (e.g. `pull request` ↔ `PR`) and ignores generic
 topics or bare base languages.
+
+## Maintainer verification
+
+```bash
+python3 scripts/verify_release.py
+```
 
 ## Caveats
 - If the CLI does not exist yet, open a new chat (so `sessionStart` can run)

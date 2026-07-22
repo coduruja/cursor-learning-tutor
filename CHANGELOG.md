@@ -1,5 +1,73 @@
 # Changelog
 
+## 3.0.1
+
+`rules/learning-tutor.mdc` still held policy that only a fraction of turns
+need — every plain code-editing turn was paying for it. Split by whether
+content is needed to *decide* a turn (always-on) or only *once inside* a
+matched skill (skill-owned):
+
+- **Rule cut from 67 to 29 lines.** It now holds only turn classification and
+  routing — the two things that must be evaluated before any skill is chosen.
+- **Transferability test moved into the four skills that gate on it**
+  (`concept-gap-capture`, `study-plan`, `study-log`,
+  `study-probe/references/assessment-rubric.md`), each inlining the full
+  test rather than assuming the rule is in context.
+- **Explanation style moved into `concept-gap-capture`**, the one skill that
+  actually teaches.
+- **Removed the now-redundant "Writing learning state" section** — every
+  skill that writes already carried its own CLI-missing fallback message.
+- `scripts/check_architecture.py`: line budget for the always-on rule dropped
+  90 → 35, and it now fails if the transferability test text reappears in the
+  rule (regression-tested against re-adding it) or is missing from any of its
+  four owners.
+
+## 3.0.0
+
+Breaking: rule and skill files were renamed and removed. Reinstall from the
+marketplace. `profile.md`, the project sheet, and the CLI are unchanged — no
+learning data is affected.
+
+- **One always-on rule.** `rules/learning-tutor.mdc` replaces `tutor-core`,
+  `learning-recording`, and `project-learning-boundary`. It holds only what must
+  hold every turn: explanation style, the transferability gate, the evidence
+  law, and the CLI-only write path.
+- **Removed the description-matched rules.** Policy that a skill depends on
+  cannot load probabilistically. Skills that said “persist through the recording
+  policy” did nothing whenever that rule was not in context.
+- **Skills are self-contained.** Each one spells out the exact CLI commands it
+  needs. `want` now appears in four skills on purpose — DRY across a context
+  boundary is a bug, not a virtue.
+- **Removed the `learning-explanations` skill.** Three lines of style is a rule,
+  not a procedure, and its description competed with `concept-gap-capture` for
+  the same requests. Style moved into the always-on rule.
+- **Disjoint skill descriptions.** Every description now states what it is *not*
+  for and names the sibling that owns that case.
+- **Inverted the guardrails.** `scripts/check_architecture.py` used to forbid a
+  skill from restating a CLI command; it now requires it, and additionally
+  enforces the single always-on rule, its line budget, disjoint triggers, and
+  `study-probe` as the only writer of `covered`.
+- Added `.cursor/rules/authoring-protocols.mdc` — how to pick and write a rule,
+  skill, hook, or agent in this repo.
+
+## 2.6.0
+- Hook vs Runtime packaging: domain code lives under `runtime/learning/` with
+  `runtime/cli.py`; hooks are thin adapters plus a `lib_profile` shim.
+- Adapters call `render_session_context` / `iter_want_markers` + `add_want`;
+  `hooks.json` sets timeouts (sessionStart 10s, afterAgentResponse 5s).
+- Calibration fallback: Rules/Skills load profile via `cli.py show` when
+  session inject is missing (no product feature cuts).
+
+## 2.5.0
+- Refactor Hooks/Agents runtime: shared `hook_io` adapters, validated
+  `LEARNING-WANT` markers, stderr diagnostics, unified project-root discovery.
+- Split `lib_profile.py` into `hooks/learning/` (`paths`, `topics`, `sections`,
+  `context`, `profile`, `project`, `install`) with a compatibility shim; stable
+  install copies the package beside `cli.py`.
+- Harden `study-researcher` ↔ `study-deep` contract (research-only boundary;
+  always hand off to one-topic probe).
+- Release checks: `scripts/test_hooks_agents.py` and `scripts/verify_release.py`.
+
 ## 2.4.0
 - Split the always-on tutor rule into `tutor-core` plus intelligent rules for
   concept capture, recording, and project-learning boundary.

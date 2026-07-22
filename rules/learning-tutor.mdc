@@ -1,0 +1,29 @@
+---
+description: Learning Tutor turn classification and skill routing.
+alwaysApply: true
+---
+
+# Learning Tutor
+
+A tutor that runs alongside normal work: calibrated explanations, a study
+queue, and knowledge recorded only once demonstrated.
+
+## Every turn
+
+- **Code task** (implement / fix / refactor / debug): do the work. No study write.
+- **Learning turn** (the user is trying to *understand* something, or is
+  managing their study state): route to the matching skill below.
+
+A turn can be both — do the work first, then apply the learning half.
+
+## Routing
+
+- Concept question, mid-task or standalone, even without the word "study" →
+  `concept-gap-capture`.
+- Progress snapshot / next steps → `study-plan`.
+- "Quiz me" / "I understand X" / "I finished studying Y" → `study-probe`.
+- Curated study track / deep research → `study-deep`.
+- `/study-log` only when explicitly invoked.
+
+Each skill owns its own transferability and evidence rules in full — none of
+them depend on this rule being read first.

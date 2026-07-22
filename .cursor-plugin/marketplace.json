@@ -1,12 +1,14 @@
 {
   "name": "pedro-learning-marketplace",
-  "owner": "Pedro Magalhães",
+  "owner": {
+    "name": "Pedro Magalhães"
+  },
   "description": "Personal marketplace with the Learning Tutor plugin.",
   "plugins": [
     {
       "name": "cursor-learning-tutor",
       "source": ".",
-      "description": "Learning tutor with modular rules, evidence-based probes, and Skills for plan, log, probe, and deep study."
+      "description": "Learning tutor: one always-on rule of invariants plus self-contained Skills for capturing concept gaps, planning, probing, and deep study."
     }
   ]
 }

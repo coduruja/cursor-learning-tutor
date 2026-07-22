@@ -2,10 +2,16 @@
   "version": 1,
   "hooks": {
     "sessionStart": [
-      { "command": "python3 \"$CURSOR_PLUGIN_ROOT/hooks/inject_profile.py\"" }
+      {
+        "command": "python3 \"$CURSOR_PLUGIN_ROOT/hooks/inject_profile.py\"",
+        "timeout": 10
+      }
     ],
     "afterAgentResponse": [
-      { "command": "python3 \"$CURSOR_PLUGIN_ROOT/hooks/capture_learning.py\"" }
+      {
+        "command": "python3 \"$CURSOR_PLUGIN_ROOT/hooks/capture_learning.py\"",
+        "timeout": 5
+      }
     ]
   }
 }

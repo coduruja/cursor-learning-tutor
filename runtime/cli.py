@@ -24,6 +24,7 @@ def _load_lib():
     here = Path(__file__).resolve().parent
     candidates = [
         here / "lib_profile.py",
+        here.parent / "hooks" / "lib_profile.py",
         Path.home() / ".cursor" / "learning" / "lib_profile.py",
     ]
     for path in candidates:

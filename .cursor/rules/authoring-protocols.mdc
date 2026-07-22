@@ -1,0 +1,80 @@
+---
+description: How to choose and write a Rule, Skill, Hook, or Agent in this repository.
+alwaysApply: true
+---
+
+# Authoring protocols (maintainers only)
+
+This repo *ships* rules, skills, hooks, and agents. Picking the wrong one is the
+main way this plugin breaks. This rule governs editing this repository; it is
+not shipped to users.
+
+## Pick by mechanism, not by topic
+
+| | Loaded | Use it for |
+|---|---|---|
+| **Rule** (`rules/*.mdc`, `alwaysApply: true`) | Every turn, in the system prompt | Invariants and style that must hold no matter what the model is doing |
+| **Skill** (`skills/*/SKILL.md`) | When the model matches the `description` | A procedure with steps, decisions, and tool calls |
+| **Reference** (`skills/*/references/*.md`) | When its own skill says to read it | Detail too long for the skill body |
+| **Hook** (`hooks/*.py`) | On a Cursor lifecycle event | Deterministic work that must not depend on the model deciding to do it |
+| **Agent** (`agents/*.md`) | When a skill delegates | Noisy or expensive work that should stay out of the main context |
+
+Two questions settle almost every case:
+
+1. *Does it change how the model behaves even when no workflow is running?* →
+   Rule. Otherwise Skill.
+2. *Would it be wrong for the model to skip this?* → Hook, not prose.
+
+## Rules
+
+- **One always-on rule.** `rules/learning-tutor.mdc` is it. A second always-on
+  rule means two things claim to be the baseline, and they will drift apart.
+- Keep it under ~90 lines. Always-on text is paid for on every single turn.
+- Do not put procedures in rules. A numbered workflow with CLI calls is a skill.
+- Do not use `alwaysApply: false` rules for policy that a skill depends on.
+  Description-matched rules load *probabilistically*: a skill that says "persist
+  through the recording policy" is a skill that silently does nothing when that
+  rule does not load. This is the exact failure this architecture was rebuilt to
+  remove — do not reintroduce it.
+
+## Skills
+
+- **Self-contained.** Every skill carries the literal commands it needs. Never
+  delegate a step to another rule or skill by name and assume it loaded.
+  Duplication across skills is correct here; DRY across context boundaries is a
+  bug, not a virtue.
+- **Disjoint descriptions.** The description is the routing table. Two skills
+  whose descriptions match the same request is the classic failure mode — the
+  model picks arbitrarily. Every description states both *when to use* and
+  *when not to* ("Not for …"), and names the sibling skill that owns the
+  excluded case.
+- A skill under ~10 lines with no steps and no tool calls is style, not a
+  procedure. Fold it into the always-on rule.
+- `disable-model-invocation: true` only for skills that must never fire on
+  their own (`study-log`).
+
+## Hooks
+
+- Adapters only: read JSON from stdin, call into `runtime/`, write JSON to
+  stdout. Domain logic lives in `runtime/learning/`, never in `hooks/`.
+- Always fail open (`{"continue": true}`), and log diagnostics to stderr, never
+  into the agent's context.
+- Line budgets are enforced by `scripts/smoke_install.py`. If an adapter is
+  outgrowing its budget, the logic belongs in `runtime/`.
+
+## Enforce policy in code when you can
+
+The CLI already rejects generic topics and base languages, and normalizes
+aliases. Deterministic beats persuasive: if a constraint can live in
+`runtime/learning/topics.py`, put it there instead of restating it in prose that
+the model may or may not be shown.
+
+## Before committing
+
+```bash
+python3 scripts/verify_release.py
+```
+
+`scripts/check_architecture.py` enforces the structural invariants above —
+single always-on rule, self-contained skills, disjoint triggers, one writer for
+`covered`. Fix the architecture rather than relaxing the check.

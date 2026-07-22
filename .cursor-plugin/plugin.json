@@ -1,8 +1,8 @@
 {
   "name": "cursor-learning-tutor",
   "displayName": "Learning Tutor",
-  "version": "2.4.0",
-  "description": "Learning tutor with modular rules, evidence-based one-topic probes, and Skills for plan, log, probe, and deep study.",
+  "version": "3.0.1",
+  "description": "Learning tutor: one always-on rule of invariants plus self-contained Skills for capturing concept gaps, planning, probing, and deep study.",
   "author": { "name": "Pedro Magalhães" },
   "keywords": ["learning", "tutor", "study", "education"],
   "license": "MIT",

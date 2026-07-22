@@ -1,66 +1,48 @@
 #!/usr/bin/env python3
 """
-afterAgentResponse: capture LEARNING-WANT markers (want-only fallback).
+afterAgentResponse adapter: capture LEARNING-WANT markers (want-only fallback).
 
-Reads hook JSON from stdin, finds want markers the recording policy instructs
-the agent to emit when the CLI is unavailable, and updates
-~/.cursor/learning/profile.md.
-
-Covered knowledge is never written from markers — only from one-topic probe
-evidence via the CLI.
+Marker parsing and profile writes live in runtime. Covered knowledge is never
+written from markers — only from one-topic probe evidence via the CLI.
 """
 
 from __future__ import annotations
 
-import importlib.util
-import json
-import re
-import sys
 from pathlib import Path
 
-WANT_RE = re.compile(
-    r'LEARNING-WANT\s+topic="(?P<topic>[^"]*)"(?:\s+note="(?P<note>[^"]*)")?'
-)
-
-
-def _load_lib():
-    here = Path(__file__).resolve().parent
-    path = here / "lib_profile.py"
-    spec = importlib.util.spec_from_file_location("lib_profile", path)
-    mod = importlib.util.module_from_spec(spec)
-    assert spec.loader is not None
-    spec.loader.exec_module(mod)
-    return mod
-
-
-def read_stdin_text() -> str:
-    raw = sys.stdin.buffer.read().decode("utf-8", errors="replace")
-    try:
-        data = json.loads(raw)
-    except Exception:
-        return raw
-    if isinstance(data, dict):
-        chunks = []
-        for key in ("text", "response", "content", "message", "output"):
-            val = data.get(key)
-            if isinstance(val, str):
-                chunks.append(val)
-        if chunks:
-            return "\n".join(chunks)
-    return raw
+import hook_io
 
 
 def main() -> None:
-    lib = _load_lib()
-    lib.install_cli(Path(__file__).resolve().parent)
-    text = read_stdin_text()
-    for m in WANT_RE.finditer(text):
-        lib.add_want(m.group("topic").strip(), (m.group("note") or "").strip())
-    print(json.dumps({"continue": True}))
+    here = Path(__file__).resolve().parent
+    raw = hook_io.read_stdin_raw()
+    data = hook_io.parse_stdin_json(raw)
+    text = hook_io.extract_response_text(data, raw)
+
+    try:
+        lib = hook_io.load_lib_profile(here)
+    except Exception as exc:  # noqa: BLE001
+        hook_io.log_diag(f"lib_profile load failed: {exc}")
+        hook_io.emit_fail_open()
+        return
+
+    try:
+        lib.install_cli(here)
+    except Exception as exc:  # noqa: BLE001
+        hook_io.log_diag(f"install_cli failed: {exc}")
+
+    for topic, note in lib.iter_want_markers(text):
+        try:
+            lib.add_want(topic, note)
+        except Exception as exc:  # noqa: BLE001
+            hook_io.log_diag(f"add_want failed for {topic!r}: {exc}")
+
+    hook_io.emit_fail_open()
 
 
 if __name__ == "__main__":
     try:
         main()
-    except Exception:
-        print(json.dumps({"continue": True}))
+    except Exception as exc:  # noqa: BLE001
+        hook_io.log_diag(f"afterAgentResponse fail-open: {exc}")
+        hook_io.emit_fail_open()
