@@ -92,13 +92,11 @@ into `~/.cursor/learning/` so Rules/Skills do not need the plugin root.
 
 Exit: contributors agree “hooks/ ≠ product backend.”
 
-### Phase 2 — Move package without behavior change
+### Phase 2 — Move package without behavior change — **done**
 
-- Move `hooks/learning/` → `runtime/learning/` (or `python/learning_tutor/`).
-- Point adapters + install at the new location.
-- Keep a shim at `hooks/lib_profile.py` until home installs are refreshed.
-- Update `install_cli` to copy from `runtime/` into `~/.cursor/learning/`.
-- Re-run `python3 scripts/verify_release.py`.
+- Moved `hooks/learning/` → `runtime/learning/` and CLI → `runtime/cli.py`.
+- Adapters still load `hooks/lib_profile.py` shim (resolves `runtime/`).
+- `install_cli` copies from `runtime/` (+ hooks shim) into `~/.cursor/learning/`.
 
 Exit: same CLI behavior; folder names match the mental model.
 
@@ -141,9 +139,10 @@ Each cut needs an explicit product decision; do not mix into Phase 2–3.
 - Live checklist: new chat install, inject when it works, marker fallback,
   `/study-deep` → researcher → probe.
 
-## Decision log (open)
+## Decision log
 
-1. Final directory name: `runtime/` vs `python/learning_tutor/`.
+1. ~~Final directory name: `runtime/` vs `python/learning_tutor/`.~~
+   **Chose `runtime/`** (Phase 2).
 2. Whether home install stays a flat copy or becomes an importable package only.
 3. Whether to add version stamps on install to detect drift.
 4. Whether per-turn inject (`beforeSubmitPrompt`) is worth the complexity.

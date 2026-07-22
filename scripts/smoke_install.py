@@ -139,7 +139,6 @@ def check_hooks_json(plugin: dict) -> None:
     required_scripts = {
         "inject_profile.py",
         "capture_learning.py",
-        "learning_cli.py",
         "lib_profile.py",
         "hook_io.py",
     }
@@ -147,9 +146,11 @@ def check_hooks_json(plugin: dict) -> None:
     missing = sorted(required_scripts - present)
     if missing:
         fail(f"hooks/ missing scripts: {', '.join(missing)}")
-    learning_pkg = ROOT / "hooks" / "learning" / "__init__.py"
+    learning_pkg = ROOT / "runtime" / "learning" / "__init__.py"
     if not learning_pkg.is_file():
-        fail("missing hooks/learning package")
+        fail("missing runtime/learning package")
+    if not (ROOT / "runtime" / "cli.py").is_file():
+        fail("missing runtime/cli.py")
     for name, budget in ADAPTER_LINE_BUDGET.items():
         path = ROOT / "hooks" / name
         lines = len(path.read_text(encoding="utf-8").splitlines())
@@ -158,7 +159,7 @@ def check_hooks_json(plugin: dict) -> None:
     print(
         "OK hooks.json "
         f"(events: {', '.join(expected_events)}; adapters only; "
-        f"line budgets ok; learning/ package)"
+        f"line budgets ok; runtime/learning package)"
     )
 
 
@@ -206,16 +207,19 @@ def check_agent() -> None:
 def install_cli() -> None:
     dest = Path.home() / ".cursor" / "learning"
     dest.mkdir(parents=True, exist_ok=True)
-    for name in ("learning_cli.py", "lib_profile.py"):
-        src = ROOT / "hooks" / name
-        if not src.is_file():
-            fail(f"missing {src.relative_to(ROOT)}")
-        target = dest / ("cli.py" if name == "learning_cli.py" else name)
-        shutil.copy2(src, target)
-        print(f"OK installed {target}")
-    package_src = ROOT / "hooks" / "learning"
+    cli_src = ROOT / "runtime" / "cli.py"
+    shim_src = ROOT / "hooks" / "lib_profile.py"
+    package_src = ROOT / "runtime" / "learning"
+    if not cli_src.is_file():
+        fail(f"missing {cli_src.relative_to(ROOT)}")
+    if not shim_src.is_file():
+        fail(f"missing {shim_src.relative_to(ROOT)}")
     if not package_src.is_dir():
-        fail("missing hooks/learning package")
+        fail("missing runtime/learning package")
+    shutil.copy2(cli_src, dest / "cli.py")
+    print(f"OK installed {dest / 'cli.py'}")
+    shutil.copy2(shim_src, dest / "lib_profile.py")
+    print(f"OK installed {dest / 'lib_profile.py'}")
     package_dest = dest / "learning"
     if package_dest.exists():
         shutil.rmtree(package_dest)

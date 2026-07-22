@@ -2,7 +2,7 @@
 """
 sessionStart: inject the profile and install the CLI at a stable path.
 
-Copies learning_cli.py + lib_profile.py to ~/.cursor/learning/ so the agent
+Copies runtime CLI + learning package to ~/.cursor/learning/ so the agent
 can write with:
   python3 ~/.cursor/learning/cli.py ...
 even without knowing the plugin path.

@@ -21,7 +21,7 @@ workflow text lives in `rules/` and `skills/`.
 - **Runtime** ≈ the kitchen (read/write profile, normalize topics, install CLI)
 
 Persistence **policy** → Rule (`learning-recording`).  
-Persistence **mechanics** → Runtime (today still packaged under `hooks/learning/`).  
+Persistence **mechanics** → Runtime under `runtime/learning/`.  
 Probe scoring → Skill reference.
 
 ## Evidence policy
@@ -45,7 +45,7 @@ Probe scoring → Skill reference.
 | Deep research track | `skills/study-deep` → always hands off to probe |
 | Research subagent | `agents/study-researcher.md` (research only; no probe writes) |
 | Cursor event adapters | `hooks/inject_profile.py`, `hooks/capture_learning.py` |
-| Profile/project I/O + CLI install | Runtime under `hooks/learning/` (to move; see refactor plan) |
+| Profile/project I/O + CLI install | `runtime/learning/` (+ `runtime/cli.py`) |
 
 ## Integration map
 
@@ -86,9 +86,8 @@ LangChain middleware, harness papers): **hooks/middleware observe or gate the
 loop; application services own domain state.** Putting markdown parsers,
 aliases, and migrations inside the hook folder confuses “bell” with “kitchen.”
 
-Today the kitchen still lives at `hooks/learning/` because the plugin ships and
-copies from there. That packaging choice is what `HOOKS_RUNTIME_REFACTOR.md`
-changes next — not the Rules/Skills evidence model.
+Today the kitchen lives at `runtime/learning/`. Hooks only adapt Cursor events
+and call into that runtime (see `HOOKS_RUNTIME_REFACTOR.md`).
 
 ## Runtime rules vs maintainer rules
 

@@ -23,6 +23,7 @@ from unittest import mock
 
 ROOT = Path(__file__).resolve().parents[1]
 HOOKS = ROOT / "hooks"
+RUNTIME = ROOT / "runtime"
 CAPTURE = HOOKS / "capture_learning.py"
 INJECT = HOOKS / "inject_profile.py"
 AGENT = ROOT / "agents" / "study-researcher.md"
@@ -360,7 +361,7 @@ class LibProfileTempHomeTests(unittest.TestCase):
             home = Path(tmp) / "home"
             home.mkdir()
             lib = load_lib_with_home(home)
-            lib.install_cli(HOOKS)
+            lib.install_cli(RUNTIME)
             learning = home / ".cursor" / "learning"
             self.assertTrue((learning / "cli.py").is_file())
             self.assertTrue((learning / "lib_profile.py").is_file())

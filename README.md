@@ -78,11 +78,10 @@ cp rules/*.mdc               ~/.cursor/rules/
 cp agents/study-researcher.md ~/.cursor/agents/
 cp -R skills/*                ~/.cursor/skills/
 cp hooks/*.py                 ~/.cursor/hooks/
-cp -R hooks/learning          ~/.cursor/hooks/learning
 cp hooks/hooks.json           ~/.cursor/hooks/hooks.json   # edit paths if needed
-cp hooks/learning_cli.py      ~/.cursor/learning/cli.py
+cp runtime/cli.py             ~/.cursor/learning/cli.py
 cp hooks/lib_profile.py       ~/.cursor/learning/lib_profile.py
-cp -R hooks/learning          ~/.cursor/learning/learning
+cp -R runtime/learning        ~/.cursor/learning/learning
 ```
 
 Plugin installs use `$CURSOR_PLUGIN_ROOT` in `hooks/hooks.json`. A manual

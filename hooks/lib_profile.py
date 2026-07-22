@@ -4,8 +4,8 @@ Public import path for Hooks and the installed CLI:
   hooks/lib_profile.py
   ~/.cursor/learning/lib_profile.py
 
-Implementation lives in the sibling `learning` package. This module re-exports
-the stable API so older loaders keep working.
+Implementation lives in `runtime/learning` (plugin) or sibling `learning/`
+(after install into ~/.cursor/learning/).
 """
 
 from __future__ import annotations
@@ -14,8 +14,14 @@ import sys
 from pathlib import Path
 
 _HERE = Path(__file__).resolve().parent
-if str(_HERE) not in sys.path:
-    sys.path.insert(0, str(_HERE))
+_CANDIDATES = (
+    _HERE,  # ~/.cursor/learning after install
+    _HERE.parent / "runtime",  # plugin: hooks/lib_profile.py → runtime/
+)
+for _candidate in _CANDIDATES:
+    if (_candidate / "learning").is_dir() and str(_candidate) not in sys.path:
+        sys.path.insert(0, str(_candidate))
+        break
 
 from learning import (  # noqa: E402
     BASE_LANGUAGES,
