@@ -12,7 +12,8 @@ writing questions or scoring answers.
 
 ## Load state
 
-Use injected `LEARNING-PROFILE` / `LEARNING-PROJECT`, or run:
+Use injected `LEARNING-PROFILE` / `LEARNING-PROJECT` when present. Session
+inject is best-effort — if either is missing, run:
 
 ```bash
 python3 ~/.cursor/learning/cli.py show

@@ -18,8 +18,9 @@ main conversation context.
    ```
 
 3. Use the first open queue topic. If the queue is empty, ask for one topic.
-4. Read the level from `LEARNING-PROFILE`; infer from conversation only when
-   absent.
+4. Prefer `LEARNING-PROFILE` from context for level. If it is missing or empty,
+   run `python3 ~/.cursor/learning/cli.py show` before inventing a level; infer
+   from conversation only when that is also empty.
 5. Pass relevant `LEARNING-PROJECT` stack/candidates as context, never as a
    replacement for the selected topic.
 

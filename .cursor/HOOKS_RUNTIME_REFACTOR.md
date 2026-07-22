@@ -109,15 +109,12 @@ Exit: same CLI behavior; folder names match the mental model.
 
 Exit: adapters readable in one screen; no domain branching inside them.
 
-### Phase 4 — Harden calibration without overweighting inject
+### Phase 4 — Harden calibration without overweighting inject — **done**
 
-Because `sessionStart` additional_context can be dropped by the IDE:
-
-- Keep install on sessionStart.
-- Teach Skills/Rules (short reminder) that empty/missing inject → `cli.py show`
-  before inventing level.
-- Optional later experiment: `beforeSubmitPrompt` recall (other products do
-  per-turn inject) — only if measured necessary; not the first move.
+- Kept install on sessionStart; inject remains best-effort enrichment.
+- Rules/Skills remind: missing `LEARNING-PROFILE` → `cli.py show` before
+  inventing level (`tutor-core`, `study-deep`, `study-probe`, `study-plan`).
+- `beforeSubmitPrompt` recall left as a later optional experiment.
 
 Exit: tutor works even when inject is silent.
 

@@ -17,6 +17,8 @@ python3 ~/.cursor/learning/cli.py project-show
 ```
 
 Use `LEARNING-PROFILE` and `LEARNING-PROJECT` from context when already present.
+If inject is missing, the `show` / `project-show` commands above are the source
+of truth — do not invent level or queue from memory.
 The global profile is authoritative for queue and covered knowledge; the project
 sheet only supplies local stack and candidates.
 
