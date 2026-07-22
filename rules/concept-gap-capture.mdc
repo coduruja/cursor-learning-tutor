@@ -3,37 +3,30 @@ description: Capture a transferable study topic when the user asks what somethin
 alwaysApply: false
 ---
 
-When the user message shows a conceptual gap, capture one transferable study
-topic. Do not announce the classification unless asked.
+# Concept gap capture
 
-## Detect `concept_gap`
-Intent (any language): definition, how it works, why it exists / why it
-matters, or how A differs from B — without pointing at a repo file, module,
-path, or symbol.
+## Applies when (`concept_gap`)
+- User asks (any language) for: definition, mechanism, purpose/why, or contrast
+  between concepts.
+- AND the ask does not target a repo file, module, path, or symbol.
 
-If the question is about this codebase (`repo_local`), answer from the code and
-do not queue. If it is an execution request (`agent_task`), just do the work.
+## Does not apply when
+- `repo_local`: question is about this codebase → answer from code; no queue write.
+- `agent_task`: implement/fix/refactor request → do the work; no queue write.
 
-## Capture
-1. Explain at the right level, with one concrete example.
-2. Select at most **one** main transferable topic for this turn.
-3. Persist a `want` (do not skip):
+## Required actions (when it applies)
+1. Explain at calibrated level; include one concrete example.
+2. Choose at most **one** transferable topic for this turn.
+3. Write queue entry (mandatory):
+   - Prefer: `python3 ~/.cursor/learning/cli.py want --topic "TOPIC" --note "why"`
+   - If CLI missing: final line `<!-- LEARNING-WANT topic="TOPIC" note="why" -->`
+4. After success: one confirmation line only.
 
-   ```bash
-   python3 ~/.cursor/learning/cli.py want --topic "TOPIC" --note "why"
-   ```
-
-   If the CLI is missing, emit a final-line marker:
-   `<!-- LEARNING-WANT topic="TOPIC" note="why" -->`
-4. Confirm with one line after a successful write.
-
-## Anti-noise
-- Skip topics already in the queue or recently covered (CLI dedupes).
-- Do not log bare generics (code, file, error…) or bare base languages
-  (Python, JS…). Tools, frameworks, and protocols are fine.
-- Repo jargon with no transferable concept → `repo_local`.
-
-## Teaching extras
-Recommend material only if the topic is new/fundamental or the user asks —
-at most 1–2 specific sources (name + why). Never “search for X”.
-For a curated track, route to `study-deep` instead of researching in chat.
+## MUST NOT
+- Announce classification unless the user asks.
+- Queue if topic is already queued/covered (CLI dedupe is authoritative).
+- Queue bare generics: code, file, error, function, module.
+- Queue bare base languages: Python, JS, TypeScript, etc.
+- Queue raw repo jargon with no transferable concept (treat as `repo_local`).
+- Recommend more than 1–2 named sources, or say “search for X”.
+- Run deep research in-chat; curated tracks use `study-deep`.
