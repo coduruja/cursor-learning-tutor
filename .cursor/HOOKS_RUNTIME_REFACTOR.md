@@ -118,16 +118,13 @@ Exit: adapters readable in one screen; no domain branching inside them.
 
 Exit: tutor works even when inject is silent.
 
-### Phase 5 — Optional product simplification (separate decision)
+### Phase 5 — Optional product simplification — **done (no cuts)**
 
-Only if we want less code, not just clearer folders:
+Explicit product decision: **keep** markdown profiles, topic aliases / anti-noise,
+project sheet, and marker fallback. This refactor is folder clarity + thin
+adapters only — not a feature reduction.
 
-- JSON/YAML profile instead of markdown sections, or
-- Drop topic-alias / anti-noise from runtime (push hygiene to Rules), or
-- Drop project sheet, or
-- Drop marker fallback (CLI-only writes).
-
-Each cut needs an explicit product decision; do not mix into Phase 2–3.
+Exit: documented decision; no mixed “simplify while moving” work.
 
 ### Phase 6 — Release
 
@@ -143,6 +140,9 @@ Each cut needs an explicit product decision; do not mix into Phase 2–3.
 2. Whether home install stays a flat copy or becomes an importable package only.
 3. Whether to add version stamps on install to detect drift.
 4. Whether per-turn inject (`beforeSubmitPrompt`) is worth the complexity.
+5. ~~Optional product cuts (JSON profile, drop aliases, drop project sheet,
+   CLI-only writes).~~ **No cuts for this release** (Phase 5) — keep current
+   product surface; only Hook/Runtime packaging changed.
 
 ## Success criteria
 
