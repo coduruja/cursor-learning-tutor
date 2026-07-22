@@ -15,8 +15,9 @@ from pathlib import Path
 
 _HERE = Path(__file__).resolve().parent
 _CANDIDATES = (
-    _HERE,  # ~/.cursor/learning after install
+    _HERE,  # ~/.cursor/learning after install (lib beside learning/)
     _HERE.parent / "runtime",  # plugin: hooks/lib_profile.py → runtime/
+    Path.home() / ".cursor" / "learning",  # user hooks copy → stable CLI install
 )
 for _candidate in _CANDIDATES:
     if (_candidate / "learning").is_dir() and str(_candidate) not in sys.path:

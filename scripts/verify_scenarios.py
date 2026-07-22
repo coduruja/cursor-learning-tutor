@@ -32,7 +32,6 @@ def main() -> int:
     errors: list[str] = []
 
     core = read("rules/tutor-core.mdc")
-    capture = read("rules/concept-gap-capture.mdc")
     recording = read("rules/learning-recording.mdc")
     boundary = read("rules/project-learning-boundary.mdc")
     study_log = read("skills/study-log/SKILL.md")
@@ -44,19 +43,18 @@ def main() -> int:
     # Rules-focused expectations
     if "alwaysApply: true" not in core:
         errors.append("tutor-core must be always-on for ordinary coding turns")
+    if "Concept gap" not in core and "concept gap" not in core.lower():
+        errors.append("tutor-core must own concept-gap → want capture")
+    if "at most **one**" not in core:
+        errors.append("tutor-core must limit concept-gap capture to one want topic")
+    if "cli.py want" not in core:
+        errors.append("tutor-core must include the want CLI for concept-gap turns")
     for rule, label in (
-        (capture, "concept-gap-capture"),
         (recording, "learning-recording"),
         (boundary, "project-learning-boundary"),
     ):
         if "alwaysApply: false" not in rule:
             errors.append(f"{label} must be Apply Intelligently")
-
-    if "one transferable" not in capture.lower() and "at most **one**" not in capture:
-        if "at most **one** main transferable" not in capture:
-            # concept-gap-capture says "at most **one** main transferable topic"
-            if "at most **one**" not in capture:
-                errors.append("concept-gap-capture must limit to one want topic")
 
     if "one-topic probe" not in recording and "one-topic" not in recording:
         errors.append("learning-recording must require one-topic probe for covered")

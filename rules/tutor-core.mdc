@@ -1,5 +1,5 @@
 ---
-description: Learning Tutor core — tutor role, profile calibration, learning-event detection, and routing of study requests to Skills.
+description: Learning Tutor core — tutor role, profile calibration, concept-gap capture, and routing of study requests to Skills.
 alwaysApply: true
 ---
 
@@ -21,6 +21,32 @@ Most requests are ordinary repository work (implement, fix, refactor, questions
 about this codebase): just do them. A learning event exists only when the user
 shows a conceptual gap, asks to study something, or explicitly manages their
 learning profile.
+
+## Concept gap → queue (`want`)
+Signals: “what is X?”, “how does X work?”, “difference between A and B?” —
+without pointing at a repo file, module, path, or symbol.
+
+On a conceptual gap (not `repo_local`, not a pure `agent_task`):
+1. Explain at the right level, with one concrete example.
+2. Select at most **one** main transferable topic for this turn.
+3. Persist a `want` (do not skip this step):
+
+   ```bash
+   python3 ~/.cursor/learning/cli.py want --topic "TOPIC" --note "why"
+   ```
+
+   If the CLI is missing, emit a final-line marker instead:
+   `<!-- LEARNING-WANT topic="TOPIC" note="why" -->`
+4. Confirm with one line after a successful write (`Saved to queue: …` or the
+   marker fallback line from the recording policy).
+
+Anti-noise: skip topics already queued/covered (CLI dedupes); do not log bare
+generic terms (code, file, error…) or bare base languages (Python, JS…).
+Frameworks, tools, and protocols are fine (Docker, HTTP, Kubernetes, AWS…).
+Do not announce the classification unless asked.
+
+For `covered`, markers detail, and full write contract, follow
+`learning-recording` when that rule is in context (or the same CLI paths).
 
 ## Routing
 Route study intent to the matching Skill:

@@ -15,9 +15,11 @@ ROOT = Path(__file__).resolve().parents[1]
 RULES = ROOT / "rules"
 SKILLS = ROOT / "skills"
 RECORDING = RULES / "learning-recording.mdc"
+TUTOR_CORE = RULES / "tutor-core.mdc"
 BOUNDARY = RULES / "project-learning-boundary.mdc"
 
-CLI_WRITE_RE = re.compile(r"cli\.py\s+(want|covered)\b")
+CLI_WANT_RE = re.compile(r"cli\.py\s+want\b")
+CLI_COVERED_RE = re.compile(r"cli\.py\s+covered\b")
 GATE_PHRASE = "Would this still be useful without opening this repository?"
 FRONTMATTER_RE = re.compile(r"\A---\n(.*?)\n---\n", re.DOTALL)
 
@@ -32,19 +34,27 @@ def iter_text_files(*dirs: Path):
 
 
 def check_cli_writes() -> list[str]:
-    """No cli.py want/covered outside rules/learning-recording.mdc."""
+    """covered CLI only in learning-recording; want also allowed in tutor-core."""
     errors = []
     for path in iter_text_files(RULES, SKILLS):
-        if path.resolve() == RECORDING.resolve():
-            continue
         text = path.read_text(encoding="utf-8")
+        rel = path.relative_to(ROOT)
         for i, line in enumerate(text.splitlines(), 1):
-            if CLI_WRITE_RE.search(line):
-                rel = path.relative_to(ROOT)
+            if CLI_COVERED_RE.search(line) and path.resolve() != RECORDING.resolve():
                 errors.append(
-                    f"{rel}:{i}: cli.py want/covered must live only in "
+                    f"{rel}:{i}: cli.py covered must live only in "
                     f"rules/learning-recording.mdc"
                 )
+            if CLI_WANT_RE.search(line):
+                allowed = {
+                    RECORDING.resolve(),
+                    TUTOR_CORE.resolve(),
+                }
+                if path.resolve() not in allowed:
+                    errors.append(
+                        f"{rel}:{i}: cli.py want must live only in "
+                        f"rules/learning-recording.mdc or rules/tutor-core.mdc"
+                    )
     return errors
 
 
