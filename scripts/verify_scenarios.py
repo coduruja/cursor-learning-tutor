@@ -33,6 +33,7 @@ def main() -> int:
 
     core = read("rules/tutor-core.mdc")
     capture = read("rules/concept-gap-capture.mdc")
+    calibration = read("rules/profile-calibration.mdc")
     recording = read("rules/learning-recording.mdc")
     boundary = read("rules/project-learning-boundary.mdc")
     study_log = read("skills/study-log/SKILL.md")
@@ -46,11 +47,22 @@ def main() -> int:
         errors.append("tutor-core must be always-on for ordinary coding turns")
     for rule, label in (
         (capture, "concept-gap-capture"),
+        (calibration, "profile-calibration"),
         (recording, "learning-recording"),
         (boundary, "project-learning-boundary"),
     ):
         if "alwaysApply: false" not in rule:
             errors.append(f"{label} must be Apply Intelligently")
+
+    cal_fm = calibration.split("---", 2)[1] if calibration.startswith("---") else ""
+    if "Apply when" not in cal_fm:
+        errors.append(
+            "profile-calibration description must be an Apply-when matcher for the agent"
+        )
+    if "cli.py show" not in calibration:
+        errors.append("profile-calibration must load profile via cli.py show when inject missing")
+    if "/study-log" not in calibration:
+        errors.append("profile-calibration must send empty profile to /study-log")
 
     if "at most **one**" not in capture:
         errors.append("concept-gap-capture must limit to one want topic")

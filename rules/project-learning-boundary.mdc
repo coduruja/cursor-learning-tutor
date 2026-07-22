@@ -1,5 +1,5 @@
 ---
-description: Separate transferable learning from repository-specific context when project code, stack, symbols, or local candidates influence a study decision.
+description: Apply when deciding whether a topic belongs in the global learning profile vs this repo only — e.g. project symbols, local stack/candidates, “should I study this?”, or promoting a project candidate to the queue.
 alwaysApply: false
 ---
 

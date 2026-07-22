@@ -66,6 +66,7 @@ def check_rules() -> None:
     expected_intelligent = {
         "concept-gap-capture.mdc",
         "learning-recording.mdc",
+        "profile-calibration.mdc",
         "project-learning-boundary.mdc",
     }
     if set(intelligent) != expected_intelligent:

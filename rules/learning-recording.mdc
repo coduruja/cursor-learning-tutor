@@ -1,5 +1,5 @@
 ---
-description: Persist Learning Tutor queue or covered updates when a learning event, explicit study-log request, or successful assessment requires a profile write.
+description: Apply when a Learning Tutor profile write is required — queue a topic (want), mark covered after a probe, emit a LEARNING-WANT marker, or confirm a save — not for read-only explanations.
 alwaysApply: false
 ---
 

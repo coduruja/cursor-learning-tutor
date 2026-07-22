@@ -1,5 +1,5 @@
 ---
-description: Capture a transferable study topic when the user asks what something is, how or why it works, or how two concepts differ (any language).
+description: Apply when the user asks what something is, how or why it works, or how A differs from B (any language), and the ask is not about a file/module/path in this repo — so a study topic should be queued.
 alwaysApply: false
 ---
 
