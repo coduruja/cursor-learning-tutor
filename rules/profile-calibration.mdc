@@ -1,23 +1,10 @@
 ---
-description: Apply when explaining a concept, teaching, choosing explanation depth, or when learning level / LEARNING-PROFILE / study queue / covered history would change the answer — e.g. "what is X?", "explain like I'm a beginner", "how deep should this go?". Skip for pure implement, fix, or refactor coding tasks.
+description: Apply when explaining/teaching or choosing depth from the user's learning level or profile. Skip pure code-change tasks.
 alwaysApply: false
 ---
 
 # Profile calibration
 
-## Applies when
-- The reply will teach or explain a concept, or choose how deep to go.
-- OR the user asks about level, profile, queue, or covered history.
-
-## Required
-- If `LEARNING-PROFILE` is in context: match explanation depth to it.
-  - Beginner: do not skip fundamentals.
-  - Do not re-teach topics marked covered unless the user asks.
-- If `LEARNING-PROFILE` is missing: run
-  `python3 ~/.cursor/learning/cli.py show` before inventing level or history.
-- If profile is empty after that: do not invent history; send the user to
-  `/study-log` (not `/study-plan`) to create the profile and first `want`s.
-
-## MUST NOT
-- Invent learning level, queue, or covered topics.
-- Use `/study-plan` as the write path for an empty profile.
+- If `LEARNING-PROFILE` is present: match depth; don't re-teach covered; don't skip fundamentals at beginner.
+- If missing: `python3 ~/.cursor/learning/cli.py show` before inventing level/history.
+- If empty: don't invent history; send user to `/study-log` (not `/study-plan`).

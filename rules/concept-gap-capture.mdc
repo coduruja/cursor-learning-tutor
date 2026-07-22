@@ -1,5 +1,5 @@
 ---
-description: Apply when the user asks what something is, how or why it works, or how A differs from B (any language), and the ask is not about a file/module/path in this repo — so a study topic should be queued.
+description: Apply when the user asks what/how/why a concept is, or how A differs from B (any language), not about a repo file/symbol.
 alwaysApply: false
 ---
 

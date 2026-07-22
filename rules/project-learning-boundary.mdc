@@ -1,5 +1,5 @@
 ---
-description: Apply when deciding whether a topic belongs in the global learning profile vs this repo only — e.g. project symbols, local stack/candidates, “should I study this?”, or promoting a project candidate to the queue.
+description: Apply when choosing global profile vs repo-only learning (symbols, local stack/candidates, promote to queue).
 alwaysApply: false
 ---
 

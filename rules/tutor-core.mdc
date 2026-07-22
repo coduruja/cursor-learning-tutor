@@ -1,5 +1,5 @@
 ---
-description: Apply on Learning Tutor turns that need routing among study-log, study-plan, study-probe, or study-deep — or when deciding coding work vs a learning event. Skip when the user only wants code changes with no study/profile intent.
+description: Apply when routing study-log/plan/probe/deep or coding vs a learning event.
 alwaysApply: true
 ---
 

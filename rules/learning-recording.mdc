@@ -1,5 +1,5 @@
 ---
-description: Apply when a Learning Tutor profile write is required — queue a topic (want), mark covered after a probe, emit a LEARNING-WANT marker, or confirm a save — not for read-only explanations.
+description: Apply when writing Learning Tutor profile state (want, covered, or LEARNING-WANT marker).
 alwaysApply: false
 ---
 
