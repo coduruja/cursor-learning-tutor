@@ -64,6 +64,7 @@ def check_rules() -> None:
     if always != ["tutor-core.mdc"]:
         fail(f"expected only tutor-core always-on, found {always}")
     expected_intelligent = {
+        "concept-gap-capture.mdc",
         "learning-recording.mdc",
         "project-learning-boundary.mdc",
     }
@@ -72,7 +73,7 @@ def check_rules() -> None:
     print("OK rules context map:")
     print(f"  always-on: {', '.join(always)}")
     print(f"  intelligent: {', '.join(intelligent)}")
-    print("  ordinary coding turn → tutor-core (includes concept-gap → want)")
+    print("  ordinary coding turn → expect tutor-core only (others by intent)")
     print("  learning turn → core + matching intelligent rule(s)")
 
 

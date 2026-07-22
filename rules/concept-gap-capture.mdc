@@ -1,0 +1,39 @@
+---
+description: Capture a transferable study topic when the user asks what something is, how or why it works, or how two concepts differ (any language).
+alwaysApply: false
+---
+
+When the user message shows a conceptual gap, capture one transferable study
+topic. Do not announce the classification unless asked.
+
+## Detect `concept_gap`
+Intent (any language): definition, how it works, why it exists / why it
+matters, or how A differs from B — without pointing at a repo file, module,
+path, or symbol.
+
+If the question is about this codebase (`repo_local`), answer from the code and
+do not queue. If it is an execution request (`agent_task`), just do the work.
+
+## Capture
+1. Explain at the right level, with one concrete example.
+2. Select at most **one** main transferable topic for this turn.
+3. Persist a `want` (do not skip):
+
+   ```bash
+   python3 ~/.cursor/learning/cli.py want --topic "TOPIC" --note "why"
+   ```
+
+   If the CLI is missing, emit a final-line marker:
+   `<!-- LEARNING-WANT topic="TOPIC" note="why" -->`
+4. Confirm with one line after a successful write.
+
+## Anti-noise
+- Skip topics already in the queue or recently covered (CLI dedupes).
+- Do not log bare generics (code, file, error…) or bare base languages
+  (Python, JS…). Tools, frameworks, and protocols are fine.
+- Repo jargon with no transferable concept → `repo_local`.
+
+## Teaching extras
+Recommend material only if the topic is new/fundamental or the user asks —
+at most 1–2 specific sources (name + why). Never “search for X”.
+For a curated track, route to `study-deep` instead of researching in chat.
