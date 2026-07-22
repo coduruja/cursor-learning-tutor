@@ -90,6 +90,14 @@ def check_skills() -> None:
     print(f"OK skills packages: {', '.join(required)}")
 
 
+ADAPTER_SCRIPTS = ("inject_profile.py", "capture_learning.py")
+ADAPTER_LINE_BUDGET = {
+    "inject_profile.py": 150,
+    "capture_learning.py": 100,
+    "hook_io.py": 120,
+}
+
+
 def check_hooks_json(plugin: dict) -> None:
     rel = plugin.get("hooks")
     hooks_path = (ROOT / rel).resolve()
@@ -102,6 +110,7 @@ def check_hooks_json(plugin: dict) -> None:
     if not isinstance(hooks, dict):
         fail("hooks.json missing hooks object")
     expected_events = ("sessionStart", "afterAgentResponse")
+    referenced: set[str] = set()
     for event in expected_events:
         entries = hooks.get(event)
         if not isinstance(entries, list) or not entries:
@@ -110,13 +119,23 @@ def check_hooks_json(plugin: dict) -> None:
             command = entry.get("command", "")
             if not isinstance(command, str) or not command.strip():
                 fail(f"hooks.json {event} entry missing command")
-            # Resolve scripts referenced under $CURSOR_PLUGIN_ROOT/hooks/...
             for match in re.finditer(
                 r"\$CURSOR_PLUGIN_ROOT/(hooks/[^\"'\s]+)", command
             ):
-                script = (ROOT / match.group(1)).resolve()
+                rel_script = match.group(1)
+                script = (ROOT / rel_script).resolve()
                 if not script.is_file():
-                    fail(f"hooks.json {event} references missing {match.group(1)}")
+                    fail(f"hooks.json {event} references missing {rel_script}")
+                name = Path(rel_script).name
+                referenced.add(name)
+                if name not in ADAPTER_SCRIPTS:
+                    fail(
+                        f"hooks.json {event} must reference only adapters "
+                        f"{ADAPTER_SCRIPTS}, found {name}"
+                    )
+    for name in ADAPTER_SCRIPTS:
+        if name not in referenced:
+            fail(f"hooks.json must reference adapter {name}")
     required_scripts = {
         "inject_profile.py",
         "capture_learning.py",
@@ -131,10 +150,15 @@ def check_hooks_json(plugin: dict) -> None:
     learning_pkg = ROOT / "hooks" / "learning" / "__init__.py"
     if not learning_pkg.is_file():
         fail("missing hooks/learning package")
+    for name, budget in ADAPTER_LINE_BUDGET.items():
+        path = ROOT / "hooks" / name
+        lines = len(path.read_text(encoding="utf-8").splitlines())
+        if lines > budget:
+            fail(f"{name} exceeds adapter line budget ({lines} > {budget})")
     print(
         "OK hooks.json "
-        f"(events: {', '.join(expected_events)}; scripts: {', '.join(sorted(required_scripts))}; "
-        "learning/ package)"
+        f"(events: {', '.join(expected_events)}; adapters only; "
+        f"line budgets ok; learning/ package)"
     )
 
 

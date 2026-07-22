@@ -1,9 +1,10 @@
 # Hooks + runtime refactor plan
 
-Status: next work after 2.5.0 on branch `cursor/hooks-agents-refactor`.
+Status: Phases 1–6 in progress on `cursor/hooks-agents-refactor` (after 2.5.0).
 
 This plan replaces the old hooks diagnosis/contracts docs. It assumes Rules and
 Skills ownership in `LEARNING_TUTOR_RULES_SKILLS_OWNERSHIP.md` stays stable.
+Public CLI argv lives in `RUNTIME_CLI_CONTRACT.md`.
 
 ## Why refactor again
 
@@ -83,12 +84,11 @@ into `~/.cursor/learning/` so Rules/Skills do not need the plugin root.
 
 ## Phased plan
 
-### Phase 1 — Freeze the story (docs + checks)
+### Phase 1 — Freeze the story (docs + checks) — **done**
 
-- Ownership map already distinguishes Hook vs Runtime.
-- Add smoke asserts that adapter files stay small (line budget) and that
-  `hooks.json` only references adapter scripts.
-- Document current public CLI commands as the compatibility surface.
+- Ownership map distinguishes Hook vs Runtime.
+- Smoke: `hooks.json` references only adapter scripts; adapter line budgets.
+- Public CLI surface documented in `RUNTIME_CLI_CONTRACT.md`.
 
 Exit: contributors agree “hooks/ ≠ product backend.”
 
