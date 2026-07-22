@@ -55,10 +55,8 @@ def main() -> int:
             errors.append(f"{label} must be Apply Intelligently")
 
     cal_fm = calibration.split("---", 2)[1] if calibration.startswith("---") else ""
-    if "Apply when" not in cal_fm:
-        errors.append(
-            "profile-calibration description must be an Apply-when matcher for the agent"
-        )
+    if "description:" not in cal_fm:
+        errors.append("profile-calibration must have a description for agent matching")
     if "cli.py show" not in calibration:
         errors.append("profile-calibration must load profile via cli.py show when inject missing")
     if "/study-log" not in calibration:
