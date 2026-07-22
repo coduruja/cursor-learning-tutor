@@ -192,12 +192,12 @@ Constraints:
 
 ---
 
-## 7. Agent `study-researcher` — frontmatter validation
+## 7. Agent `study-researcher` — integration contract (Phase E)
 
 File: `agents/study-researcher.md`  
 Delegated from: `skills/study-deep/SKILL.md` (string name `study-researcher`)
 
-### Frontmatter (current)
+### Frontmatter
 
 ```yaml
 name: study-researcher
@@ -206,27 +206,23 @@ model: inherit
 readonly: true
 ```
 
-### Validation against Subagents docs (2026-07-21)
+| Field | Verdict |
+|---|---|
+| `name` | Must stay equal to Skill delegation string |
+| `description` | Drives auto-delegation |
+| `model: inherit` | Keep; match parent reasoning |
+| `readonly: true` | Keep; no file/profile mutation |
+| `is_background` | Omit unless deep-study becomes async |
 
-| Field | Supported? | Verdict |
-|---|---|---|
-| `name` | Yes | Keep; must stay equal to Skill delegation string |
-| `description` | Yes | Keep; drives auto-delegation |
-| `model: inherit` | Yes (default) | Keep; research should match parent reasoning |
-| `readonly: true` | Yes | Keep; researcher must not edit files or mutate profile |
-| `is_background` | Supported, unused | Omit unless deep-study becomes async |
-
-**Phase A decision:** do **not** change Agent frontmatter. Earlier suspicion that
-`model` / `readonly` were undocumented is **resolved** — they are official.
-Phase E may still tighten body I/O wording and add smoke checks; renaming
-`name` requires a coordinated Skill update.
-
-### Behavioral boundary (frozen)
+### Behavioral boundary
 
 - Input: topic + level (+ optional project stack context).
-- Output: curated track markdown only (≤5 items).
+- Output: curated track markdown only (≤5 items: starting point, track, signals).
 - Must **not** score probes or write `covered` / `want`.
 - `study-deep` always hands off to one-topic `study-probe` after the track.
+
+Verified by `scripts/smoke_install.py` (`check_agent`) and
+`scripts/test_hooks_agents.py` (`AgentLinkTests`).
 
 ---
 

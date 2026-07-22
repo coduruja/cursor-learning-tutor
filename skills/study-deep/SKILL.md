@@ -25,16 +25,21 @@ main conversation context.
 
 ## Delegate
 
-Ask `study-researcher` for:
+Ask the `study-researcher` subagent with this contract:
 
-- Topic and current level
+**Pass in**
+
+- Topic (required) and current level
+- Optional `LEARNING-PROJECT` stack/candidates as context only
+
+**Expect back** (do not rewrite or re-research)
+
 - Starting point
-- Ordered track of at most five ranked resources
-- Why each resource fits
-- Estimated effort
+- Ordered track of at most five ranked resources (name, type, link, why, effort)
 - Concrete advancement signals
 
-Return only the subagent's final track. Do not duplicate its research.
+The subagent is research/curation only: it must not probe, score, or write
+`want`/`covered`. Return only its final track to the user.
 
 ## Finish
 

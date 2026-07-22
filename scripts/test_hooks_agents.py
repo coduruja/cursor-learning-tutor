@@ -389,8 +389,20 @@ class AgentLinkTests(unittest.TestCase):
         self.assertRegex(fm, r"(?m)^model:\s*inherit\s*$")
         self.assertRegex(fm, r"(?m)^readonly:\s*true\s*$")
 
+        body = text[match.end() :]
+        self.assertIn("Boundary (non-negotiable)", body)
+        self.assertIn("Expected input (from `study-deep`)", body)
+        self.assertIn("Output format", body)
+        self.assertIn("Do **not** run a probe", body)
+        self.assertIn("Do **not** write `covered`", body)
+        self.assertIn("At most five items", body)
+
         deep = STUDY_DEEP.read_text(encoding="utf-8")
         self.assertIn("study-researcher", deep)
+        self.assertIn("research/curation only", deep)
+        self.assertIn("study-probe", deep)
+        self.assertIn("write `covered`", deep)
+        self.assertIn("must **not**", deep)
 
 
 def main() -> int:

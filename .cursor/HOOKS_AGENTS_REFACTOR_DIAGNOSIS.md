@@ -165,20 +165,13 @@ Rules/Skills refactor.
 
 **Risk:** the next structural refactor has no regression harness.
 
-### 9. The Agent contract is only partially explicit
+### 9. The Agent contract is only partially explicit — mitigated in Phase E
 
-`study-researcher.md` describes expected input and output, but its integration
-with `study-deep` depends on the string name `study-researcher`.
+`study-researcher` and `study-deep` now share an explicit pass-in / expect-back
+contract and a research-only boundary. Smoke/harness checks assert frontmatter,
+name linkage, and key boundary phrases.
 
-**Phase A validation (2026-07-21):** Subagents docs support `name`,
-`description`, `model` (including `inherit`), `readonly`, and `is_background`.
-Current frontmatter is valid; do not strip `model` / `readonly`. Remaining gap
-is the lack of a structural smoke check for name ↔ Skill linkage (Phase B/E).
-
-**Root cause:** the Agent was added as one workflow dependency without a
-repository-level contract check.
-
-**Risk:** a rename can still silently break delegation until smoke checks exist.
+**Remaining:** live delegation still needs a manual Cursor check in Phase F.
 
 ## Refactor principles
 
@@ -279,12 +272,12 @@ shim, `cli.py`, and the `learning/` package.
 Exit: entry points are thin and no module has unrelated persistence,
 installation, and rendering responsibilities.
 
-### Phase E — Harden the Agent integration
+### Phase E — Harden the Agent integration — **done**
 
-- Keep current supported frontmatter (`model: inherit`, `readonly: true`).
-- Align input/output wording with `study-deep`.
-- Make the boundary explicit: research and curation only; no probe scoring.
-- Add a structural smoke check for the Agent name and Skill reference.
+- Kept supported frontmatter (`model: inherit`, `readonly: true`).
+- Aligned Agent I/O wording with `study-deep` (pass-in / expect-back).
+- Explicit research-only boundary: no probe, no `want`/`covered` writes.
+- Strengthened smoke + harness checks for name link and contract phrases.
 
 Exit: delegation has one documented and verified contract.
 

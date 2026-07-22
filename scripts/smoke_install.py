@@ -155,10 +155,28 @@ def check_agent() -> None:
         fail("study-researcher.md frontmatter model must be inherit")
     if not re.search(r"(?m)^readonly:\s*true\s*$", fm):
         fail("study-researcher.md frontmatter readonly must be true")
+    body = text[match.end() :]
+    for needle in (
+        "Boundary (non-negotiable)",
+        "Expected input (from `study-deep`)",
+        "Output format",
+        "Do **not** run a probe",
+        "Do **not** write `covered`",
+    ):
+        if needle not in body:
+            fail(f"study-researcher.md missing contract phrase: {needle}")
     deep = ROOT / "skills" / "study-deep" / "SKILL.md"
-    if "study-researcher" not in deep.read_text(encoding="utf-8"):
+    deep_text = deep.read_text(encoding="utf-8")
+    if "study-researcher" not in deep_text:
         fail("skills/study-deep/SKILL.md must reference study-researcher")
-    print("OK agent study-researcher (frontmatter + study-deep link)")
+    for needle in (
+        "research/curation only",
+        "study-probe",
+        "write `covered`",
+    ):
+        if needle not in deep_text:
+            fail(f"study-deep/SKILL.md missing handoff phrase: {needle}")
+    print("OK agent study-researcher (frontmatter + I/O boundary + study-deep link)")
 
 
 def install_cli() -> None:
