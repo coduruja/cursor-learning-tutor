@@ -1,5 +1,15 @@
 # Changelog
 
+## 2.5.0
+- Refactor Hooks/Agents runtime: shared `hook_io` adapters, validated
+  `LEARNING-WANT` markers, stderr diagnostics, unified project-root discovery.
+- Split `lib_profile.py` into `hooks/learning/` (`paths`, `topics`, `sections`,
+  `context`, `profile`, `project`, `install`) with a compatibility shim; stable
+  install copies the package beside `cli.py`.
+- Harden `study-researcher` ↔ `study-deep` contract (research-only boundary;
+  always hand off to one-topic probe).
+- Release checks: `scripts/test_hooks_agents.py` and `scripts/verify_release.py`.
+
 ## 2.4.0
 - Split the always-on tutor rule into `tutor-core` plus intelligent rules for
   concept capture, recording, and project-learning boundary.

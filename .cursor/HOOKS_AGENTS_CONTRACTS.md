@@ -255,3 +255,11 @@ Implementation lives in `hooks/learning/` (`paths`, `topics`, `sections`,
 `context`, `profile`, `project`, `install`). `hooks/lib_profile.py` is a
 compatibility shim. Stable install copies the shim + `learning/` package beside
 `cli.py`.
+
+## Phase F release
+
+```bash
+python3 scripts/verify_release.py
+```
+
+Current plugin version: **2.5.0**.

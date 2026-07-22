@@ -1,6 +1,8 @@
 {
   "name": "pedro-learning-marketplace",
-  "owner": "Pedro Magalhães",
+  "owner": {
+    "name": "Pedro Magalhães"
+  },
   "description": "Personal marketplace with the Learning Tutor plugin.",
   "plugins": [
     {

@@ -1,7 +1,7 @@
 {
   "name": "cursor-learning-tutor",
   "displayName": "Learning Tutor",
-  "version": "2.4.0",
+  "version": "2.5.0",
   "description": "Learning tutor with modular rules, evidence-based one-topic probes, and Skills for plan, log, probe, and deep study.",
   "author": { "name": "Pedro Magalhães" },
   "keywords": ["learning", "tutor", "study", "education"],

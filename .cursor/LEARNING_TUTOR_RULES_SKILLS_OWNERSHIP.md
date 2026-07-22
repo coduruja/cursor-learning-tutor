@@ -1,7 +1,8 @@
 # Learning Tutor — Rules and Skills ownership map
 
-Current state as of **2.4.0**. The Rules/Skills split and evidence policy are
-implemented. Full history: git / merged PR #1.
+Current state as of **2.5.0**. The Rules/Skills split and evidence policy are
+implemented (2.4.0). Hooks/Agents refactor is complete on this branch.
+Full history: git / merged PR #1 + hooks-agents commits.
 
 This file is the short ownership map for the stable tutoring architecture.
 Detailed workflow text lives in `rules/` and `skills/`. Hooks and Agents:
@@ -78,6 +79,8 @@ Maintainer rules: optional; add only when the same editing mistakes recur.
 ## Verify
 
 ```bash
+python3 scripts/verify_release.py
+# or individually:
 python3 scripts/check_architecture.py
 python3 scripts/smoke_install.py
 python3 scripts/verify_scenarios.py

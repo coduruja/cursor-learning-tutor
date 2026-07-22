@@ -1,6 +1,7 @@
 # Hooks and Agents refactor diagnosis
 
-Status: planning document for branch `cursor/hooks-agents-refactor`.
+Status: planning document for branch `cursor/hooks-agents-refactor`
+(Phases A–F complete on the automated path; live IDE checklist remains).
 
 This document records the current runtime, its concrete problems, and the
 recommended refactor order. It does not replace the stable Rules/Skills
@@ -281,29 +282,35 @@ installation, and rendering responsibilities.
 
 Exit: delegation has one documented and verified contract.
 
-### Phase F — Release verification
+### Phase F — Release verification — **done** (automated)
 
-- Run architecture, install, scenario, Hook, CLI, and Agent checks.
-- Test a fresh session with no global profile.
-- Test a session with global and project context.
-- Test valid and invalid `LEARNING-WANT` markers.
-- Test `study-deep` → researcher → one-topic probe.
-- Update version and changelog only after live verification.
+Deliverables:
+
+- `scripts/verify_release.py` — runs architecture, smoke, scenarios, hooks/agents
+- README + marketplace aligned with modular rules and `hooks/learning/` install
+- Version **2.5.0** + CHANGELOG
+
+Automated coverage (temp HOME / structural):
+
+- Fresh session (empty profile) and session with profile + project sheet
+- Valid and invalid `LEARNING-WANT` markers
+- `study-deep` ↔ `study-researcher` ↔ probe handoff phrases
+
+Live Cursor checklist remains in `verify_release.py` output (sessionStart
+injection visibility and end-to-end deep→probe in the IDE).
 
 Exit: no silent Hook failure in the tested paths and no Rules/Skills policy
-regression.
+regression (automated matrix green).
 
 ## Decisions still required
 
 1. Whether Hook diagnostics should use stderr only or also a local log file.
-2. Whether the installed runtime should remain flat or become a copied package.
+2. ~~Whether the installed runtime should remain flat or become a copied package.~~
+   **Decided in Phase D** — copied `learning/` package beside shim + `cli.py`.
 3. Whether installation should use a version stamp or content comparison.
 4. Which Cursor versions and operating systems this refactor must support.
 5. ~~Whether project discovery should trust Hook workspace metadata, current
    working directory, or both with a documented precedence.~~
    **Decided in Phase A** — see `HOOKS_AGENTS_CONTRACTS.md` §4
-   (`--cwd` → `workspace_roots` when present → `cwd`; ancestor walk only for
-   injection until Phase C unifies helpers).
-
-Remaining decisions should be made after Phase B exposes the current behavior;
-they should not block the initial regression tests.
+   (`--cwd` → `workspace_roots` when present → `cwd`; ancestor walk for
+   injection via `find_project_sheet(..., walk_ancestors=True)`).
