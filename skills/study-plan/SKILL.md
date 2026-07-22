@@ -58,8 +58,10 @@ sheet is missing or empty, or when the user asks — not on every invocation.
   Never call `want` yourself.
 - **Next 3 steps** — prioritized and actionable
 
-Keep gaps transferable: anything useful only inside this repository stays
-project-local and never appears in the global list.
+Keep gaps transferable — apply the test *"Would this still be useful without
+opening this repository?"* Yes → a real gap worth listing. No → project-local;
+leave it out of the global list even if it is a strong local candidate. Partly
+→ describe the broader concept, not the local instance.
 
 Close by offering `/study-probe` to verify a topic or `/study-deep <topic>` for
 a curated track.

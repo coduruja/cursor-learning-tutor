@@ -69,29 +69,55 @@ def main() -> int:
     )
 
     # --- Scenario: the tutor explains -------------------------------------
+    # Style moved out of the always-on rule (3.1): it only matters once a
+    # learning turn is already routed to a skill, so it lives there instead.
     require(
-        has(rule, "plain language"),
-        "explanation style (plain-language lead) must live in the always-on rule",
+        has(capture, "plain language"),
+        "explanation style (plain-language lead) must live in concept-gap-capture",
+    )
+    require(
+        not has(rule, "plain language"),
+        "explanation style must not creep back into the always-on rule",
     )
 
-    # --- Scenario: transferability ----------------------------------------
+    # --- Scenario: transferability ------------------------------------------
+    # Every skill that can write global state inlines the test itself — none
+    # may assume the always-on rule still states it (see 3.1 line-budget cut).
+    transferability = "Would this still be useful without opening this repository?"
+    for name, text in (
+        ("concept-gap-capture", capture),
+        ("study-plan", plan),
+        ("study-log", log),
+        ("assessment-rubric.md", rubric),
+    ):
+        require(
+            has(text, transferability),
+            f"{name} must inline the transferability test",
+        )
     require(
-        has(rule, "Would this still be useful without opening this repository?"),
-        "the always-on rule must own the transferability test",
+        not has(rule, transferability),
+        "the always-on rule must not own the transferability test anymore",
     )
     require(
-        has_any(rule, "never global", "never global topics"),
-        "rule must state that repo-local detail never enters the global profile",
+        has(capture, "LEARNING-PROJECT") and has(capture, "never queued"),
+        "concept-gap-capture must forbid auto-queuing project candidates",
     )
     require(
-        has(rule, "auto-promoted"),
-        "rule must forbid auto-promoting project candidates into the queue",
+        has(capture, "Symbols, paths, environment variables"),
+        "concept-gap-capture must forbid raw symbols/paths as global topics",
     )
 
     # --- Scenario: evidence -----------------------------------------------
+    # The "covered = demonstrated, not exposed" law lives with its only
+    # writer (study-probe) and with the skills that route claims away from it.
     require(
-        has(rule, "study-probe") and has_any(rule, "demonstrated", "never *exposed*"),
-        "rule must define covered as demonstrated via study-probe",
+        has_any(probe, "never infer mastery from exposure", "only skill that may write covered"),
+        "study-probe must own the evidence law: no covered without a probe",
+    )
+    require(
+        has(log, "do not") and has(log, "write") and has(log, "covered")
+        and has(log, "study-probe"),
+        "study-log must route a learned-claim to study-probe instead of covered",
     )
     require(
         not has(rule, "LEARNING-LOG"),

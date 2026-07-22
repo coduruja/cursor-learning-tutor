@@ -23,7 +23,19 @@ RULES = ROOT / "rules"
 SKILLS = ROOT / "skills"
 
 ALWAYS_ON_RULE = "learning-tutor.mdc"
-ALWAYS_ON_LINE_BUDGET = 90
+# Deliberately tight: the rule holds only turn classification and routing.
+# Transferability, evidence law, and CLI mechanics live in the skills that
+# actually use them — see .cursor/rules/authoring-protocols.mdc. Raise this
+# only if routing itself grows, never to make room for policy prose.
+ALWAYS_ON_LINE_BUDGET = 35
+
+TRANSFERABILITY_PHRASE = "would this still be useful without opening this repository"
+TRANSFERABILITY_OWNERS = {
+    ROOT / "skills" / "concept-gap-capture" / "SKILL.md",
+    ROOT / "skills" / "study-plan" / "SKILL.md",
+    ROOT / "skills" / "study-log" / "SKILL.md",
+    ROOT / "skills" / "study-probe" / "references" / "assessment-rubric.md",
+}
 
 FRONTMATTER_RE = re.compile(r"\A---\n(.*?)\n---\n", re.DOTALL)
 CLI_WANT_RE = re.compile(r"cli\.py\s+want\b")
@@ -69,6 +81,11 @@ EXPECTED_SKILLS = {
 def frontmatter(text: str) -> str | None:
     match = FRONTMATTER_RE.match(text)
     return match.group(1) if match else None
+
+
+def normalize(text: str) -> str:
+    """Collapse whitespace so a phrase re-wrapped across lines still matches."""
+    return re.sub(r"\s+", " ", text).lower()
 
 
 KEY_RE = re.compile(r"^[A-Za-z][\w-]*:")
@@ -142,6 +159,30 @@ def check_rules() -> list[str]:
             f"rules/{ALWAYS_ON_RULE}: {lines} lines exceeds the always-on "
             f"budget of {ALWAYS_ON_LINE_BUDGET}; move procedure into a skill"
         )
+    if TRANSFERABILITY_PHRASE in normalize(text):
+        errors.append(
+            f"rules/{ALWAYS_ON_RULE}: the transferability test is owned by "
+            f"the skills that gate on it, not the always-on rule — inline it "
+            f"in the relevant skill instead"
+        )
+    return errors
+
+
+def check_transferability_ownership() -> list[str]:
+    """The transferability test must be inlined in every skill that gates on
+    it, since it decides whether that skill is allowed to write global state.
+    """
+    errors: list[str] = []
+    for path in sorted(TRANSFERABILITY_OWNERS):
+        if not path.is_file():
+            errors.append(f"{path.relative_to(ROOT)}: expected file is missing")
+            continue
+        text = normalize(path.read_text(encoding="utf-8"))
+        if TRANSFERABILITY_PHRASE not in text:
+            errors.append(
+                f"{path.relative_to(ROOT)}: must inline the transferability "
+                f"test — it cannot assume the always-on rule still states it"
+            )
     return errors
 
 
@@ -249,6 +290,7 @@ def main() -> int:
     skills = skill_paths()
     errors: list[str] = []
     errors.extend(check_rules())
+    errors.extend(check_transferability_ownership())
     errors.extend(check_skill_frontmatter(skills))
     errors.extend(check_disjoint_triggers(skills))
     errors.extend(check_self_containment(skills))

@@ -40,6 +40,13 @@ Then:
   name, never the raw symbol or path. Go to step 3.
 - **Both** → explain the local part briefly; queue only the transferable concept.
 
+Test for "transferable": *"Would this still be useful without opening this
+repository?"* Yes → eligible for the queue. No → repo-local, keep it out.
+Partly → rename to the broader concept first, then use that as the topic.
+Symbols, paths, environment variables, and class names are never topics, and
+`LEARNING-PROJECT` candidates are never queued just because they exist — only
+a real `concept_gap` from this flow is.
+
 ## 3. Explain
 
 Lead with the main idea in plain language, add one concrete example, then say

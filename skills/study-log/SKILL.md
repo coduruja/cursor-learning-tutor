@@ -27,7 +27,8 @@ write goes through the CLI below.
 
 ## Transferability
 
-Before any global `want`:
+Test before any global `want`: *"Would this still be useful without opening
+this repository?"*
 
 - Transferable concept → queue it.
 - Repo-local symbol, path, or env var → generalize it to the broader concept and

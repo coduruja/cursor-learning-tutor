@@ -57,6 +57,13 @@ write `covered`.
    python3 ~/.cursor/learning/cli.py want --topic "TOPIC" --note "deep track started"
    ```
 
+   If `~/.cursor/learning/cli.py` does not exist, emit this marker instead and
+   say it was queued via fallback:
+
+   ```text
+   <!-- LEARNING-WANT topic="TOPIC" note="deep track started" -->
+   ```
+
 2. Always continue into a one-topic `study-probe` for the same topic (ask which
    topic only if it is ambiguous). Assessment is the next step, not an optional
    suggestion.

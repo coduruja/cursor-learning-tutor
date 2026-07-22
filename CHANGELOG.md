@@ -1,5 +1,27 @@
 # Changelog
 
+## 3.0.1
+
+`rules/learning-tutor.mdc` still held policy that only a fraction of turns
+need — every plain code-editing turn was paying for it. Split by whether
+content is needed to *decide* a turn (always-on) or only *once inside* a
+matched skill (skill-owned):
+
+- **Rule cut from 67 to 29 lines.** It now holds only turn classification and
+  routing — the two things that must be evaluated before any skill is chosen.
+- **Transferability test moved into the four skills that gate on it**
+  (`concept-gap-capture`, `study-plan`, `study-log`,
+  `study-probe/references/assessment-rubric.md`), each inlining the full
+  test rather than assuming the rule is in context.
+- **Explanation style moved into `concept-gap-capture`**, the one skill that
+  actually teaches.
+- **Removed the now-redundant "Writing learning state" section** — every
+  skill that writes already carried its own CLI-missing fallback message.
+- `scripts/check_architecture.py`: line budget for the always-on rule dropped
+  90 → 35, and it now fails if the transferability test text reappears in the
+  rule (regression-tested against re-adding it) or is missing from any of its
+  four owners.
+
 ## 3.0.0
 
 Breaking: rule and skill files were renamed and removed. Reinstall from the

@@ -6,8 +6,8 @@ topic** with **5 to 10** questions; fewer than five questions must not write
 
 ## Transferability
 
-Only probe what would still be useful without opening this repository. Local
-detail is a starting point, never the topic:
+Test before selecting a topic: *"Would this still be useful without opening
+this repository?"* Local detail is a starting point, never the topic:
 
 | Local detail | Transferable concept |
 |---|---|
