@@ -33,8 +33,9 @@ def iter_text_files(*dirs: Path):
 
 
 def check_cli_writes() -> list[str]:
-    """covered CLI only in learning-recording; want also in concept-gap-capture."""
+    """covered CLI only in learning-recording; want also in concept-gap-capture skill."""
     errors = []
+    capture_skill = (SKILLS / "concept-gap-capture" / "SKILL.md").resolve()
     for path in iter_text_files(RULES, SKILLS):
         text = path.read_text(encoding="utf-8")
         rel = path.relative_to(ROOT)
@@ -47,13 +48,13 @@ def check_cli_writes() -> list[str]:
             if CLI_WANT_RE.search(line):
                 allowed = {
                     RECORDING.resolve(),
-                    (RULES / "concept-gap-capture.mdc").resolve(),
+                    capture_skill,
                 }
                 if path.resolve() not in allowed:
                     errors.append(
                         f"{rel}:{i}: cli.py want must live only in "
                         f"rules/learning-recording.mdc or "
-                        f"rules/concept-gap-capture.mdc"
+                        f"skills/concept-gap-capture/SKILL.md"
                     )
     return errors
 

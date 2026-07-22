@@ -64,7 +64,6 @@ def check_rules() -> None:
     if always != ["tutor-core.mdc"]:
         fail(f"expected only tutor-core always-on, found {always}")
     expected_intelligent = {
-        "concept-gap-capture.mdc",
         "learning-recording.mdc",
         "project-learning-boundary.mdc",
     }
@@ -85,6 +84,7 @@ def check_skills() -> None:
         "study-probe",
         "study-deep",
         "learning-explanations",
+        "concept-gap-capture",
     ]
     for name in required:
         skill = skills / name / "SKILL.md"

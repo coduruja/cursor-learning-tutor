@@ -11,6 +11,7 @@ alwaysApply: true
   the matching rule or Skill.
 
 ## Routing
+- Conceptual question / unclear repo vs concept → `concept-gap-capture`
 - Profile fix / queue topic / empty profile → `study-log`
 - Snapshot / progress → `study-plan`
 - Quiz or “I understand / finished studying X” → `study-probe`

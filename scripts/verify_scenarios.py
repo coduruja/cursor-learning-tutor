@@ -32,7 +32,7 @@ def main() -> int:
     errors: list[str] = []
 
     core = read("rules/tutor-core.mdc")
-    capture = read("rules/concept-gap-capture.mdc")
+    capture = read("skills/concept-gap-capture/SKILL.md")
     explanations = read("skills/learning-explanations/SKILL.md")
     recording = read("rules/learning-recording.mdc")
     boundary = read("rules/project-learning-boundary.mdc")
@@ -45,13 +45,30 @@ def main() -> int:
     # Rules-focused expectations
     if "alwaysApply: true" not in core:
         errors.append("tutor-core must be always-on for ordinary coding turns")
+    if "concept-gap-capture" not in core:
+        errors.append("tutor-core must route conceptual questions to concept-gap-capture")
     for rule, label in (
-        (capture, "concept-gap-capture"),
         (recording, "learning-recording"),
         (boundary, "project-learning-boundary"),
     ):
         if "alwaysApply: false" not in rule:
             errors.append(f"{label} must be Apply Intelligently")
+
+    cap_fm = capture.split("---", 2)[1] if capture.startswith("---") else ""
+    if "name: concept-gap-capture" not in cap_fm:
+        errors.append("concept-gap-capture skill must declare name")
+    if "disable-model-invocation: true" in cap_fm:
+        errors.append("concept-gap-capture must stay model-invocable")
+    if "at most **one**" not in capture:
+        errors.append("concept-gap-capture must limit to one want topic")
+    if "cli.py want" not in capture:
+        errors.append("concept-gap-capture must include the want CLI")
+    if "cli.py show" not in capture:
+        errors.append("concept-gap-capture must check the queue via cli.py show")
+    if "project" not in capture.lower() or "concept" not in capture.lower():
+        errors.append("concept-gap-capture must distinguish project unfamiliarity vs concept gap")
+    if "why" not in capture.lower():
+        errors.append("concept-gap-capture must include why-intent signals")
 
     exp_fm = explanations.split("---", 2)[1] if explanations.startswith("---") else ""
     if "name: learning-explanations" not in exp_fm:
@@ -64,13 +81,6 @@ def main() -> int:
         errors.append("learning-explanations must not depend on profile I/O")
     if "plain language" not in explanations:
         errors.append("learning-explanations must require plain-language lead")
-
-    if "at most **one**" not in capture:
-        errors.append("concept-gap-capture must limit to one want topic")
-    if "cli.py want" not in capture:
-        errors.append("concept-gap-capture must include the want CLI")
-    if "why" not in capture.lower():
-        errors.append("concept-gap-capture must include why-intent signals")
 
     if "one-topic probe" not in recording and "one-topic" not in recording:
         errors.append("learning-recording must require one-topic probe for covered")

@@ -20,7 +20,7 @@ workflow text lives in `rules/` and `skills/`.
 - **Runtime** ≈ the kitchen (read/write profile, normalize topics, install CLI)
 
 Persistence **policy** → Rule (`learning-recording` full contract;
-`concept-gap-capture` embeds `want` CLI when that rule applies).  
+`concept-gap-capture` skill owns queue check + `want` on conceptual gaps).  
 Persistence **mechanics** → Runtime under `runtime/learning/`.  
 Probe scoring → Skill reference.
 
@@ -37,7 +37,7 @@ Probe scoring → Skill reference.
 |---|---|
 | Persist `want` / `covered` (CLI, markers, feedback) | `rules/learning-recording.mdc` (full contract) |
 | Transferability (local vs global) | `rules/project-learning-boundary.mdc` |
-| Auto-`want` on conceptual questions | `rules/concept-gap-capture.mdc` |
+| Auto-`want` on conceptual questions | `skills/concept-gap-capture` |
 | Explanation style for learners (static; no profile I/O) | `skills/learning-explanations` |
 | Routing + coding vs learning | `rules/tutor-core.mdc` (only always-on rule) |
 | Probe scoring | `skills/study-probe` + `references/assessment-rubric.md` |
@@ -51,7 +51,7 @@ Probe scoring → Skill reference.
 ## Integration map
 
 ```text
-concept_gap (rule) ──want──► queue
+concept_gap (skill) ──want──► queue
                 │
                 ▼
          study-plan ──offers──► study-probe ──covered/want──► profile
