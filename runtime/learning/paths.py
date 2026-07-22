@@ -24,7 +24,7 @@ def resolve_project_root(
 ) -> Path:
     """Resolve the project root used for sheet paths.
 
-    Precedence (see .cursor/HOOKS_RUNTIME_REFACTOR.md / ownership map):
+    Precedence (see ownership map):
     1. explicit cwd / --cwd
     2. first existing absolute path in workspace_roots
     3. Path.cwd()

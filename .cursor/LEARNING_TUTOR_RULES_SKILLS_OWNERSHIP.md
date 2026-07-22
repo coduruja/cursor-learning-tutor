@@ -1,8 +1,7 @@
 # Learning Tutor — ownership map
 
 Current state as of **2.6.0**. Rules/Skills evidence policy landed in 2.4.0.
-Hooks still mix Cursor adapters with the persistence library; the next cut is
-planned in `HOOKS_RUNTIME_REFACTOR.md`.
+Domain persistence lives under `runtime/`; `hooks/` are thin Cursor adapters.
 
 This file is the short ownership map for the tutoring architecture. Detailed
 workflow text lives in `rules/` and `skills/`.
@@ -87,7 +86,7 @@ loop; application services own domain state.** Putting markdown parsers,
 aliases, and migrations inside the hook folder confuses “bell” with “kitchen.”
 
 Today the kitchen lives at `runtime/learning/`. Hooks only adapt Cursor events
-and call into that runtime (see `HOOKS_RUNTIME_REFACTOR.md`).
+and call into that runtime.
 
 ## Runtime rules vs maintainer rules
 
