@@ -65,8 +65,8 @@ def check_rules() -> None:
         fail(f"expected only tutor-core always-on, found {always}")
     expected_intelligent = {
         "concept-gap-capture.mdc",
+        "learning-explanations.mdc",
         "learning-recording.mdc",
-        "profile-calibration.mdc",
         "project-learning-boundary.mdc",
     }
     if set(intelligent) != expected_intelligent:

@@ -49,7 +49,7 @@ python3 ~/.cursor/learning/cli.py project-sync --stack "Next.js;Prisma" --candid
 | Component | Role |
 |---|---|
 | `rules/tutor-core.mdc` | Always-on: coding vs learning, Skill routing |
-| `rules/profile-calibration.mdc` | Explanation depth from LEARNING-PROFILE / CLI |
+| `rules/learning-explanations.mdc` | Static learner-friendly explanation style (no profile I/O) |
 | `rules/concept-gap-capture.mdc` | Auto-`want` on conceptual questions |
 | `rules/learning-recording.mdc` | Persist `want` / `covered` (CLI + markers) |
 | `rules/project-learning-boundary.mdc` | Transferable vs repo-local learning |

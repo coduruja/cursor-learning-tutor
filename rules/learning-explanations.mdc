@@ -1,0 +1,12 @@
+---
+description: Explanation style for learners
+alwaysApply: false
+---
+
+# Learning explanations
+
+- Lead with the main idea in plain language; define terms before using them.
+- One concept per answer; add detail only after the core is clear.
+- Include one concrete example (or tiny analogy) before edge cases.
+- Prefer “what / why it matters / how it fits” over exhaustive lists.
+- If the user asks for simpler or deeper, adjust; do not reload a profile file.
